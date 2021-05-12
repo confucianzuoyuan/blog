@@ -1,0 +1,183 @@
+= 从零使用C语言构建一个Lisp解释器
+:icons: font
+:source-highlighter: highlightjs
+:toc: left
+:toclevels: 4
+:sectnums:
+
+== 第一章：简介
+
+理解事物如何工作的最好方法是尝试自己构建它。阅读别人的解释可能会满足我们的好奇心，但是如果没有踩坑的经验，就很难理解为什么某些事物是以某种方式设计的。
+
+有人说，每个程序员都应该编写一个编译器。尽管我认为这是个不错的建议（尽管我自己并没有遵循），但是在解析诸如C之类的语言时需要付出大量的努力，以至于任何潜在的见解都有可能迷失在细节中。也许为一些简单的语言创建一个解释器将是一个很好的第一步。
+
+早在几年前，我开始使用LISP。我阅读了《计算机程序的结构和解释》。你需要阅读一下这本书。
+
+这本书涵盖了许多主题，但是下半部分详细介绍了如何对LISP程序进行求值(eval)，也就是使用LISP本身实现了一个`eval`函数。我认为这可以很好地转换为C程序，因此决定尝试创建自己的LISP实现。
+
+作为一名专业程序员，我将大部分时间都花在编写C和C++上。其余大多数是Java。有很多语言在那里，每个都有自己的优点值得商榷，但我想证明实现一个LISP机器是一件多简单的事情，甚至使用像C语言这样的底层语言来实现。
+
+所以这是我的LISP的玩具实现。我已经从各种方言中借用了功能，但是它比Common LISP更接近Scheme。差异是微不足道的，以至于转换不需要对解释程序进行实质性的更改。如果你不熟悉LISP，请不要担心。我将在实现LISP的过程中定义所有内容。
+
+它既不是最小的实现，也不是最高效的，也不是最完整的实现。但是它可以说是懒惰的。我的目标是编写功能强大，易于阅读的代码，该代码完全满足其需要，并且不再需要执行任何其他操作，并且我希望它可以传达构建诸如LISP之类的功能强大的环境所需的工作量。
+
+== 第二章：数据
+
+我们将首先定义四种对象：
+
+* 整数：一个数字。例如：3,-9,0。
+* 符号：由字符串组成的名称。例如：FOO,BAR,ADD-TWO。我们将在此项目中将符号规范化为大写，但这不是绝对必要的。
+* `NIL` ：表示“无”。有点像C语言和其他语言中的 `NULL` 。
+* `Pair` ：`Pair` 由两个元素组成，出于历史原因，它们被称为 `car` 和 `cdr` 。 `Pair` 中的两个元素可以是整数，符号， `NIL` ，或者其他 `Pair` 的引用。每个元素的类型可能不同。
+
+整数，符号和 `NIL` 被称作简单数据类型。术语 *atom* 指任何一个简单数据类型或者 `Pair` 。
+
+请注意，整数和符号是 _不可变的_ ，因此我们可以将具有相同值的两个整数视为同一对象。这对符号特别有用，因为它允许我们通过比较指针来测试两个符号是否相等。
+
+=== 实现
+
+让我们声明一些C类型来保存我们的数据。有许多聪明的方法可以有效地存储LISP对象，但是对于此实现，我们将坚持一个非常简单的方案。
+
+[source,c]
+----
+struct Atom {
+    enum {
+        AtomType_Nil,
+        AtomType_Pair,
+        AtomType_Symbol,
+        AtomType_Integer
+    } type;
+
+    union {
+        struct Pair *pair;
+        const char *symbol;
+        long integer;
+    } value;
+};
+
+struct Pair {
+    struct Atom atom[2];
+};
+
+typedef struct Atom Atom;
+----
+
+定义一些宏将很方便：
+
+[source,c]
+----
+#define car(p) ((p).value.pair->atom[0])
+#define cdr(p) ((p).value.pair->atom[1])
+#define nilp(atom) ((atom).type == AtomType_Nil)
+
+static const Atom nil = { AtomType_Nil };
+----
+
+整数和指向字符串的指针可以拷贝，但是我们想要初始化 `Pair` 的话，需要从堆( `Heap` )上申请内存。
+
+[source,c]
+----
+Atom cons(Atom car_val, Atom cdr_val)
+{
+    Atom p;
+    
+    p.type = AtomType_Pair;
+    p.value.pair = malloc(sizeof(struct Pair));
+    
+    car(p) = car_val;
+    cdr(p) = cdr_val;
+    
+    return p;
+}
+----
+
+`cons` 是这样一个函数，它在堆上分配一个 `Pair` ，然后对 `Pair` 的两个元素进行赋值。
+
+=== 测试
+
+现在我们可以创建一些LISP对象了。创建一个整数：
+
+[source,c]
+----
+Atom make_int(long x)
+{
+    Atom a;
+    a.type = AtomType_Integer;
+    a.value.integer = x;
+    return a;
+}
+----
+
+创建一个符号：
+
+[source,c]
+----
+Atom make_sym(const char *s)
+{
+    Atom a;
+    a.type = AtomType_Symbol;
+    a.value.symbol = strdup(s);
+    return a;
+}
+----
+
+=== 文本表示
+
+我们可以将一个 `Pair` 写作下面这种方式：
+
+[source,lisp]
+----
+(a . b)
+----
+
+`a` 是 `car` ， `b` 是 `cdr` 。
+
+将 `pair` 中的 `cdr` 部分指向另一个 `pair` ，我们就可以创建一个链了。比如下面这样：
+
+[source,lisp]
+----
+(a . (b . (c . (d . NIL))))
+----
+
+请注意，最后一个 `pair` 的 `cdr` 部分是一个 `NIL` ，这标示了链的结束。我们叫这个链为 `列表` 。为了避免写大量的括号，我们可以将上面的列表写成下面这种格式：
+
+[source,lisp]
+----
+(a b c d)
+----
+
+如果列表中的最后一个 `pair` 的 `cdr` 部分不是 `NIL` 的话，可以写作如下形式：
+
+[source,lisp]
+----
+(p q . r)
+----
+
+
+== 第三章：解析器
+
+== 第四章：表达式
+
+== 第五章：内建函数
+
+== 第六章：算术表达式
+
+== 第七章：Lambda表达式和闭包
+
+== 第八章：布尔值和短路求值
+
+== 第九章：语法糖
+
+== 第十章：变长参数函数
+
+== 第十一章：宏
+
+== 第十二章：库
+
+== 第十三章：准引用
+
+== 第十四章：延续和尾递归
+
+== 第十五章：垃圾收集
+
+== 第十六章：接下来做什么？
