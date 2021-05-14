@@ -153,8 +153,211 @@ Atom make_sym(const char *s)
 (p q . r)
 ----
 
+等价于：
+
+[source,lisp]
+----
+(p . (q . r))
+----
+
+以上这种写法被成为 _improper list_ 。
+
+=== 实现
+
+打印一个符号或者 `Pair` 很简单。代码如下：
+
+[source,c]
+----
+void print_expr(Atom atom)
+{
+    switch (atom.type) {
+    case AtomType_Nil:
+        printf("NIL");
+        break;
+    case AtomType_Pair:
+        putchar('(');
+        print_expr(car(atom));
+        atom = cdr(atom);
+        while (!nilp(atom)) {
+            if (atom.type == AtomType_Pair) {
+                putchar(' ');
+                print_expr(car(atom));
+                atom = cdr(atom);
+            } else {
+                printf(" . ");
+                print_expr(atom);
+                break;
+            }
+        }
+        putchar(')');
+        break;
+    case AtomType_Symbol:
+        printf("%s", atom.value.symbol);
+        break;
+    case AtomType_Integer:
+        printf("%ld", atom.value.integer);
+        break;
+    }
+}
+----
+
+通过使用递归的方式，我们可以打印任意复杂的数据结构。当然如果打印一个嵌套很深的数据结构时，可能会出现栈空间不足。而打印一个存在循环引用的数据结构时，也会出现死循环。
+
+=== 测试
+
+[cols="1,1"]
+|===
+| *Atom* | *Output*
+| make_int(42) | 42
+| make_sym("FOO") | FOO
+| cons(make_sym("X"), make_sym("Y")) | (X . Y)
+| cons(make_int(1),
+  cons(make_int(2),
+  cons(make_int(3),
+  nil))) | (1 2 3)
+|===
+
+可以看到，这些事情很简单。下一章我们将会搞一些更复杂的事情。
+
+=== 最后一件事情
+
+还记得我们说过我们将相同的符号视为相同的对象吗？我们可以强制跟踪每一个创建的符号，如果创建了一个之前已经创建过的字符序列，我们将返回同一个符号。
+
+如果实现的语言是内置了集合或者哈希表数据结构的语言的话，实现这个功能将会很容易。但是我们也可以使用已经实现的LISP数据结构，将符号存储在一个列表中。
+
+[source,c]
+----
+static Atom sym_table = { AtomType_Nil };
+
+Atom make_sym(const char *s)
+{
+    Atom a, p;
+
+    p = sym_table;
+    while (!nilp(p)) {
+        a = car(p);
+        if (strcmp(a.value.symbol, s) == 0)
+            return a;
+        p = cdr(p);
+    }
+
+    a.type = AtomType_Symbol;
+    a.value.symbol = strdup(s);
+    sym_table = cons(a, sym_table);
+
+    return a;
+}
+----
+
+这个实现看起来不是很高效，是吗？但足够用了，代码可读性也很好。
 
 == 第三章：解析器
+
+下一个阶段就是解析了。就是读取一行文本，然后创建这个文本所表示的对象。如果这行文本并不表示我们定义过的对象，我们需要抛出错误。
+
+=== 错误处理
+
+错误的定义如下：
+
+[source,c]
+----
+typedef enum {
+    Error_OK = 0,
+    Error_Syntax
+} Error;
+----
+
+如果像我一样，你学过BASIC编程，那么你将很熟悉可怕的 `SYNTAX ERROR` 。现在是我们从栅栏另一侧看东西的机会。从现在开始，我们的大多数函数都将返回错误，以指示是否出了问题以及出了什么问题。
+
+=== 词法分析（Lexer）
+
+我没有接受过CS的正式培训，但是据我了解，它的想法是将字符串拆分成 `token` 的列表，这些 `token` 既是“单词”又是“标点符号”，并丢弃所有无关紧要的空格。因此，如果输入为：
+
+[source,lisp]
+----
+(foo bar)
+----
+
+那么经过词法分析生成的4个 `token` 应该是：
+
+image::lexer.png[词法分析示意图]
+
+让我们先来创建一个词法分析器（lexer），词法分析器将返回 `token` 的开始位置的指针和结束位置的指针。
+
+[source,c]
+----
+int lex(const char *str, const char **start, const char **end)
+{
+    const char *ws = " \t\n";
+    const char *delim = "() \t\n";
+    const char *prefix = "()";
+
+    // C 库函数 size_t strspn(const char *str1, const char *str2) 检索字符串 str1 中第一个不在字符串 str2 中出现的字符下标。
+    // 检索字符串 str 中第一个不在字符串 ws 中出现的字符下标
+    str += strspn(str, ws);
+
+    if (str[0] == '\0') {
+        *start = *end = NULL;
+        return Error_Syntax;
+    }
+
+    *start = str;
+
+    // C 库函数 char *strchr(const char *str, int c) 在参数 str 所指向的字符串中搜索第一次出现字符 c（一个无符号字符）的位置。
+    if (strchr(prefix, str[0]) != NULL)
+        *end = str + 1;
+    else
+        // C 库函数 size_t strcspn(const char *str1, const char *str2) 检索字符串 str1 开头连续有几个字符都不含字符串 str2 中的字符。
+        *end = str + strcspn(str, delim);
+
+    return Error_OK;
+}
+----
+
+如果我们的词法分析器在没有找到 `token` 的情况下已经来到了字符串的末尾（即，字符串的其余部分完全是空格），则它将返回语法错误并将开始和结束设置为NULL。
+
+=== 解析器
+
+现在我们可以考虑解析器本身。入口点是 `read_expr` 函数，它将读取单个（可能是复杂的）对象，并返回错误状态和指向输入其余部分的指针。
+
+[source,c]
+----
+int read_expr(const char *input, const char **end, Atom *result);
+----
+
+我们将首先处理简单的数据：整数，符号和NIL。如果有一个正则表达式库，那么这很容易，但是使用C语言也不复杂。
+
+[source,c]
+----
+int parse_simple(const char *start, const char *end, Atom *result)
+{
+    char *buf, *p;
+
+    /* Is it an integer? */
+    long val = strtol(start, &p, 10);
+    if (p == end) {
+        result->type = AtomType_Integer;
+        result->value.integer = val;
+        return Error_OK;
+    }
+
+    /* NIL or symbol */
+    buf = malloc(end - start + 1);
+    p = buf;
+    while (start != end)
+        *p++ = toupper(*start), ++start;
+    *p = '\0';
+
+    if (strcmp(buf, "NIL") == 0)
+        *result = nil;
+    else
+        *result = make_sym(buf);
+
+    free(buf);
+
+    return Error_OK;
+}
+----
 
 == 第四章：表达式
 
