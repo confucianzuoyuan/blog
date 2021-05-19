@@ -359,6 +359,430 @@ int parse_simple(const char *start, const char *end, Atom *result)
 }
 ----
 
+注意两件事：首先，我们将输入转换为大写。这不是严格必要的-区分大小写的lisp没有错-但这是传统的行为。其次， `NIL` 是一个特例：它直接解析为 `AtomType_Nil` ，而不是将其解析为符号。
+
+如果你熟悉LISP的各种方言，那么你将知道 `NIL` 不一定与 `()` 空列表相同。我们可以选择将 `NIL` 视为求值结果是自身的符号，但是对于本项目，我们将认为两种表示形式完全相同。
+
+接下来是列表（包括 improper 列表和对）。简化的列表语法使此操作有些复杂，因此我们将其全部保留在辅助函数中。递归再次使我们能够处理嵌套列表。
+
+[source,c]
+----
+int read_list(const char *start, const char **end, Atom *result)
+{
+    Atom p;
+
+    *end = start;
+    p = *result = nil;
+
+    for (;;) {
+        const char *token;
+        Atom item;
+        Error err;
+
+        err = lex(*end, &token, end);
+        if (err)
+            return err;
+
+        if (token[0] == ')')
+            return Error_OK;
+
+        if (token[0] == '.' && *end - token == 1) {
+            /* Improper list */
+            if (nilp(p))
+                return Error_Syntax;
+
+            err = read_expr(*end, end, &item);
+            if (err)
+                return err;
+
+            cdr(p) = item;
+
+            /* Read the closing ')' */
+            err = lex(*end, &token, end);
+            if (!err && token[0] != ')')
+                err = Error_Syntax;
+
+            return err;
+        }
+
+        err = read_expr(token, end, &item);
+        if (err)
+            return err;
+
+        if (nilp(p)) {
+            /* First item */
+            *result = cons(item, nil);
+            p = *result;
+        } else {
+            cdr(p) = cons(item, nil);
+            p = cdr(p);
+        }
+    }
+}
+----
+
+我不喜欢写无限循环，但这是我到目前为止写出的结构最清晰的代码。
+
+最后，我们有了 `read_expr` 本身，由于我们已经完成了所有艰苦的工作，所以这很简单：
+
+[source,c]
+----
+int read_expr(const char *input, const char **end, Atom *result)
+{
+    const char *token;
+    Error err;
+
+    err = lex(input, &token, end);
+    if (err)
+        return err;
+
+    if (token[0] == '(')
+        return read_list(*end, end, result);
+    else if (token[0] == ')')
+        return Error_Syntax;
+    else
+        return parse_simple(token, *end, result);
+}
+----
+
+这里对右括号的检查将会捕获一些不合法的代码形式，例如：
+
+[source,scheme]
+----
+)
+----
+
+以及
+
+[source,scheme]
+----
+(X .)
+----
+
+=== 测试
+
+如果使用解析器创建一个简单的读取-打印循环（read-print-loop），则可以在控制台上键入对象的表示形式并检查是否正确解析了它们。
+
+[source,c]
+----
+int main(int argc, char **argv)
+{
+    char *input;
+
+    while ((input = readline("> ")) != NULL) {
+        const char *p = input;
+        Error err;
+        Atom expr;
+
+        err = read_expr(p, &p, &expr);
+
+        switch (err) {
+        case Error_OK:
+            print_expr(expr);
+            putchar('\n');
+            break;
+        case Error_Syntax:
+            puts("Syntax error");
+            break;
+        }
+
+        free(input);
+    }
+
+    return 0;
+}
+----
+
+上面的代码使用了 `readline` 库，该库显示提示并从控制台读取一行文本。它支持的编辑功能很强大，但是围绕 `fgets()` 的简单封装也可以做到相同的事情。
+
+[source,text]
+----
+> 42
+42
+> (foo bar)
+(FOO BAR)
+> (s (t . u) v . (w . nil))
+(S (T . U) V W)
+> ()
+NIL
+----
+
+完整代码如下：
+
+[source,c]
+----
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <readline/readline.h>
+
+typedef enum {
+    Error_OK = 0,
+    Error_Syntax
+} Error;
+
+struct Atom
+{
+    enum {
+        AtomType_Nil,
+        AtomType_Pair,
+        AtomType_Symbol,
+        AtomType_Integer
+    } type;
+
+    union {
+        struct Pair *pair;
+        const char *symbol;
+        long integer;
+    } value;
+};
+
+struct Pair {
+    struct Atom atom[2];
+};
+
+typedef struct Atom Atom;
+
+#define car(p) ((p).value.pair->atom[0])
+#define cdr(p) ((p).value.pair->atom[1])
+#define nilp(atom) ((atom).type == AtomType_Nil)
+
+static const Atom nil = { AtomType_Nil };
+
+Atom cons(Atom car_val, Atom cdr_val)
+{
+    Atom p;
+
+    p.type = AtomType_Pair;
+    p.value.pair = malloc(sizeof(struct Pair));
+
+    car(p) = car_val;
+    cdr(p) = cdr_val;
+
+    return p;
+}
+
+Atom make_int(long x)
+{
+    Atom a;
+    a.type = AtomType_Integer;
+    a.value.integer = x;
+    return a;
+}
+
+Atom make_sym(const char *s)
+{
+    Atom a;
+    a.type = AtomType_Symbol;
+    a.value.symbol = strdup(s);
+    return a;
+}
+
+int lex(const char *str, const char **start, const char **end)
+{
+    const char *ws = " \t\n";
+    const char *delim = "() \t\n";
+    const char *prefix = "()";
+
+    str += strspn(str, ws);
+
+    if (str[0] == '\0') {
+        *start = *end = NULL;
+        return Error_Syntax;
+    }
+
+    *start = str;
+
+    // strchr函数功能为在一个串中查找给定字符的第一个匹配之处
+    if (strchr(prefix, str[0]) != NULL)
+        *end = str + 1;
+    else
+    // 该函数返回 str1 开头连续都不含字符串 str2 中字符的字符数。
+        *end = str + strcspn(str, delim);
+
+    return Error_OK;
+}
+
+int read_expr(const char *input, const char **end, Atom *result);
+
+int parse_simple(const char *start, const char *end, Atom *result)
+{
+    char *buf, *p;
+
+    long val = strtol(start, &p, 10);
+    if (p == end) {
+        result->type = AtomType_Integer;
+        result->value.integer = val;
+        return Error_OK;
+    }
+
+    buf = malloc(end - start + 1);
+    p = buf;
+    while (start != end)
+        *p++ = toupper(*start), ++start;
+    *p = '\0';
+
+    if (strcmp(buf, "NIL") == 0) {
+        *result = nil;
+    } else {
+        *result = make_sym(buf);
+    }
+
+    free(buf);
+    
+    return Error_OK;
+}
+
+int read_list(const char *start, const char **end, Atom *result)
+{
+    Atom p;
+
+    *end = start;
+    p = *result = nil;
+
+    for (;;) {
+        const char *token;
+        Atom item;
+        Error err;
+
+        err = lex(*end, &token, end);
+        if (err) {
+            return err;
+        }
+
+        if (token[0] == ')') {
+            return Error_OK;
+        }
+
+        if (token[0] == '.' && *end - token == 1) {
+            if (nilp(p)) {
+                return Error_Syntax;
+            }
+
+            err = read_expr(*end, end, &item);
+            if (err) {
+                return err;
+            }
+
+            cdr(p) = item;
+
+            err = lex(*end, &token, end);
+            if (!err && token[0] != ')') {
+                err = Error_Syntax;
+            }
+
+            return err;
+        }
+
+        err = read_expr(token, end, &item);
+        if (err) {
+            return err;
+        }
+
+        if (nilp(p)) {
+            *result = cons(item, nil);
+            p = *result;
+        } else {
+            cdr(p) = cons(item, nil);
+            p = cdr(p);
+        }
+    }
+}
+
+int read_expr(const char *input, const char **end, Atom *result)
+{
+    const char *token;
+    Error err;
+
+    err = lex(input, &token, end);
+    if (err) return err;
+
+    if (token[0] == '(') {
+        return read_list(*end, end, result);
+    } else if (token[0] == ')') {
+        return Error_Syntax;
+    } else {
+        return parse_simple(token, *end, result);
+    }
+}
+
+void print_expr(Atom atom)
+{
+    switch (atom.type)
+    {
+    case AtomType_Nil:
+        printf("NIL");
+        break;
+
+    case AtomType_Pair:
+        putchar('(');
+        print_expr(car(atom));
+        atom = cdr(atom);
+        while (!nilp(atom)) {
+            if (atom.type == AtomType_Pair) {
+                putchar(' ');
+                print_expr(car(atom));
+                atom = cdr(atom);
+            } else {
+                printf(" . ");
+                print_expr(atom);
+                break;
+            }
+        }
+        putchar(')');
+        break;
+
+    case AtomType_Symbol:
+        printf("%s", atom.value.symbol);
+        break;
+
+    case AtomType_Integer:
+        printf("%ld", atom.value.integer);
+        break;
+    
+    default:
+        break;
+    }
+}
+
+int main(int argc, char const *argv[])
+{
+    char *input;
+
+    while ((input = readline("> ")) != NULL) {
+        const char *p = input;
+        Error err;
+        Atom expr;
+
+        err = read_expr(p, &p, &expr);
+
+        switch (err)
+        {
+        case Error_OK:
+            print_expr(expr);
+            putchar('\n');
+            break;
+        case Error_Syntax:
+            puts("Syntax error");
+            break;
+        }
+
+        free(input);
+    }
+
+    return 0;
+}
+----
+
+在Ubuntu环境下，可以安装 readline 库，然后再编译的时候需要链接上这个库。
+
+[source,bash]
+----
+$ sudo apt-get install libreadline6-dev
+$ gcc lisp.c -lreadline -o lisp
+----
+
 == 第四章：表达式
 
 == 第五章：内建函数

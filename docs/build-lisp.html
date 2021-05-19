@@ -459,6 +459,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#_错误处理">3.1. 错误处理</a></li>
 <li><a href="#_词法分析lexer">3.2. 词法分析（Lexer）</a></li>
 <li><a href="#_解析器">3.3. 解析器</a></li>
+<li><a href="#_测试_3">3.4. 测试</a></li>
 </ul>
 </li>
 <li><a href="#_第四章表达式">4. 第四章：表达式</a></li>
@@ -918,6 +919,442 @@ Atom make_sym(const char *s)
 }</code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>注意两件事：首先，我们将输入转换为大写。这不是严格必要的-区分大小写的lisp没有错-但这是传统的行为。其次， <code>NIL</code> 是一个特例：它直接解析为 <code>AtomType_Nil</code> ，而不是将其解析为符号。</p>
+</div>
+<div class="paragraph">
+<p>如果你熟悉LISP的各种方言，那么你将知道 <code>NIL</code> 不一定与 <code>()</code> 空列表相同。我们可以选择将 <code>NIL</code> 视为求值结果是自身的符号，但是对于本项目，我们将认为两种表示形式完全相同。</p>
+</div>
+<div class="paragraph">
+<p>接下来是列表（包括 improper 列表和对）。简化的列表语法使此操作有些复杂，因此我们将其全部保留在辅助函数中。递归再次使我们能够处理嵌套列表。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int read_list(const char *start, const char **end, Atom *result)
+{
+    Atom p;
+
+    *end = start;
+    p = *result = nil;
+
+    for (;;) {
+        const char *token;
+        Atom item;
+        Error err;
+
+        err = lex(*end, &amp;token, end);
+        if (err)
+            return err;
+
+        if (token[0] == ')')
+            return Error_OK;
+
+        if (token[0] == '.' &amp;&amp; *end - token == 1) {
+            /* Improper list */
+            if (nilp(p))
+                return Error_Syntax;
+
+            err = read_expr(*end, end, &amp;item);
+            if (err)
+                return err;
+
+            cdr(p) = item;
+
+            /* Read the closing ')' */
+            err = lex(*end, &amp;token, end);
+            if (!err &amp;&amp; token[0] != ')')
+                err = Error_Syntax;
+
+            return err;
+        }
+
+        err = read_expr(token, end, &amp;item);
+        if (err)
+            return err;
+
+        if (nilp(p)) {
+            /* First item */
+            *result = cons(item, nil);
+            p = *result;
+        } else {
+            cdr(p) = cons(item, nil);
+            p = cdr(p);
+        }
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>我不喜欢写无限循环，但这是我到目前为止写出的结构最清晰的代码。</p>
+</div>
+<div class="paragraph">
+<p>最后，我们有了 <code>read_expr</code> 本身，由于我们已经完成了所有艰苦的工作，所以这很简单：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int read_expr(const char *input, const char **end, Atom *result)
+{
+    const char *token;
+    Error err;
+
+    err = lex(input, &amp;token, end);
+    if (err)
+        return err;
+
+    if (token[0] == '(')
+        return read_list(*end, end, result);
+    else if (token[0] == ')')
+        return Error_Syntax;
+    else
+        return parse_simple(token, *end, result);
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>这里对右括号的检查将会捕获一些不合法的代码形式，例如：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>以及</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(X .)</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_测试_3">3.4. 测试</h3>
+<div class="paragraph">
+<p>如果使用解析器创建一个简单的读取-打印循环（read-print-loop），则可以在控制台上键入对象的表示形式并检查是否正确解析了它们。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int main(int argc, char **argv)
+{
+    char *input;
+
+    while ((input = readline("&gt; ")) != NULL) {
+        const char *p = input;
+        Error err;
+        Atom expr;
+
+        err = read_expr(p, &amp;p, &amp;expr);
+
+        switch (err) {
+        case Error_OK:
+            print_expr(expr);
+            putchar('\n');
+            break;
+        case Error_Syntax:
+            puts("Syntax error");
+            break;
+        }
+
+        free(input);
+    }
+
+    return 0;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>上面的代码使用了 <code>readline</code> 库，该库显示提示并从控制台读取一行文本。它支持的编辑功能很强大，但是围绕 <code>fgets()</code> 的简单封装也可以做到相同的事情。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">&gt; 42
+42
+&gt; (foo bar)
+(FOO BAR)
+&gt; (s (t . u) v . (w . nil))
+(S (T . U) V W)
+&gt; ()
+NIL</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>完整代码如下：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;ctype.h&gt;
+#include &lt;readline/readline.h&gt;
+
+typedef enum {
+    Error_OK = 0,
+    Error_Syntax
+} Error;
+
+struct Atom
+{
+    enum {
+        AtomType_Nil,
+        AtomType_Pair,
+        AtomType_Symbol,
+        AtomType_Integer
+    } type;
+
+    union {
+        struct Pair *pair;
+        const char *symbol;
+        long integer;
+    } value;
+};
+
+struct Pair {
+    struct Atom atom[2];
+};
+
+typedef struct Atom Atom;
+
+#define car(p) ((p).value.pair-&gt;atom[0])
+#define cdr(p) ((p).value.pair-&gt;atom[1])
+#define nilp(atom) ((atom).type == AtomType_Nil)
+
+static const Atom nil = { AtomType_Nil };
+
+Atom cons(Atom car_val, Atom cdr_val)
+{
+    Atom p;
+
+    p.type = AtomType_Pair;
+    p.value.pair = malloc(sizeof(struct Pair));
+
+    car(p) = car_val;
+    cdr(p) = cdr_val;
+
+    return p;
+}
+
+Atom make_int(long x)
+{
+    Atom a;
+    a.type = AtomType_Integer;
+    a.value.integer = x;
+    return a;
+}
+
+Atom make_sym(const char *s)
+{
+    Atom a;
+    a.type = AtomType_Symbol;
+    a.value.symbol = strdup(s);
+    return a;
+}
+
+int lex(const char *str, const char **start, const char **end)
+{
+    const char *ws = " \t\n";
+    const char *delim = "() \t\n";
+    const char *prefix = "()";
+
+    str += strspn(str, ws);
+
+    if (str[0] == '\0') {
+        *start = *end = NULL;
+        return Error_Syntax;
+    }
+
+    *start = str;
+
+    // strchr函数功能为在一个串中查找给定字符的第一个匹配之处
+    if (strchr(prefix, str[0]) != NULL)
+        *end = str + 1;
+    else
+    // 该函数返回 str1 开头连续都不含字符串 str2 中字符的字符数。
+        *end = str + strcspn(str, delim);
+
+    return Error_OK;
+}
+
+int read_expr(const char *input, const char **end, Atom *result);
+
+int parse_simple(const char *start, const char *end, Atom *result)
+{
+    char *buf, *p;
+
+    long val = strtol(start, &amp;p, 10);
+    if (p == end) {
+        result-&gt;type = AtomType_Integer;
+        result-&gt;value.integer = val;
+        return Error_OK;
+    }
+
+    buf = malloc(end - start + 1);
+    p = buf;
+    while (start != end)
+        *p++ = toupper(*start), ++start;
+    *p = '\0';
+
+    if (strcmp(buf, "NIL") == 0) {
+        *result = nil;
+    } else {
+        *result = make_sym(buf);
+    }
+
+    free(buf);
+
+    return Error_OK;
+}
+
+int read_list(const char *start, const char **end, Atom *result)
+{
+    Atom p;
+
+    *end = start;
+    p = *result = nil;
+
+    for (;;) {
+        const char *token;
+        Atom item;
+        Error err;
+
+        err = lex(*end, &amp;token, end);
+        if (err) {
+            return err;
+        }
+
+        if (token[0] == ')') {
+            return Error_OK;
+        }
+
+        if (token[0] == '.' &amp;&amp; *end - token == 1) {
+            if (nilp(p)) {
+                return Error_Syntax;
+            }
+
+            err = read_expr(*end, end, &amp;item);
+            if (err) {
+                return err;
+            }
+
+            cdr(p) = item;
+
+            err = lex(*end, &amp;token, end);
+            if (!err &amp;&amp; token[0] != ')') {
+                err = Error_Syntax;
+            }
+
+            return err;
+        }
+
+        err = read_expr(token, end, &amp;item);
+        if (err) {
+            return err;
+        }
+
+        if (nilp(p)) {
+            *result = cons(item, nil);
+            p = *result;
+        } else {
+            cdr(p) = cons(item, nil);
+            p = cdr(p);
+        }
+    }
+}
+
+int read_expr(const char *input, const char **end, Atom *result)
+{
+    const char *token;
+    Error err;
+
+    err = lex(input, &amp;token, end);
+    if (err) return err;
+
+    if (token[0] == '(') {
+        return read_list(*end, end, result);
+    } else if (token[0] == ')') {
+        return Error_Syntax;
+    } else {
+        return parse_simple(token, *end, result);
+    }
+}
+
+void print_expr(Atom atom)
+{
+    switch (atom.type)
+    {
+    case AtomType_Nil:
+        printf("NIL");
+        break;
+
+    case AtomType_Pair:
+        putchar('(');
+        print_expr(car(atom));
+        atom = cdr(atom);
+        while (!nilp(atom)) {
+            if (atom.type == AtomType_Pair) {
+                putchar(' ');
+                print_expr(car(atom));
+                atom = cdr(atom);
+            } else {
+                printf(" . ");
+                print_expr(atom);
+                break;
+            }
+        }
+        putchar(')');
+        break;
+
+    case AtomType_Symbol:
+        printf("%s", atom.value.symbol);
+        break;
+
+    case AtomType_Integer:
+        printf("%ld", atom.value.integer);
+        break;
+
+    default:
+        break;
+    }
+}
+
+int main(int argc, char const *argv[])
+{
+    char *input;
+
+    while ((input = readline("&gt; ")) != NULL) {
+        const char *p = input;
+        Error err;
+        Atom expr;
+
+        err = read_expr(p, &amp;p, &amp;expr);
+
+        switch (err)
+        {
+        case Error_OK:
+            print_expr(expr);
+            putchar('\n');
+            break;
+        case Error_Syntax:
+            puts("Syntax error");
+            break;
+        }
+
+        free(input);
+    }
+
+    return 0;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>在Ubuntu环境下，可以安装 readline 库，然后再编译的时候需要链接上这个库。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ sudo apt-get install libreadline6-dev
+$ gcc lisp.c -lreadline -o lisp</code></pre>
+</div>
+</div>
 </div>
 </div>
 </div>
@@ -1002,7 +1439,7 @@ Atom make_sym(const char *s)
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-05-14 16:14:57 +0800
+Last updated 2021-05-19 15:29:37 +0800
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
