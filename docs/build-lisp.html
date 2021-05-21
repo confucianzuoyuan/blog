@@ -470,7 +470,11 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#_实现_3">4.2.1. 实现</a></li>
 </ul>
 </li>
-<li><a href="#_求值">4.3. 求值</a></li>
+<li><a href="#_求值">4.3. 求值</a>
+<ul class="sectlevel3">
+<li><a href="#_实现_4">4.3.1. 实现</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a href="#_第五章内建函数">5. 第五章：内建函数</a></li>
@@ -502,7 +506,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <p>早在几年前，我开始使用LISP。我阅读了《计算机程序的结构和解释》。你需要阅读一下这本书。</p>
 </div>
 <div class="paragraph">
-<p>这本书涵盖了许多主题，但是下半部分详细介绍了如何对LISP程序进行求值(eval)，也就是使用LISP本身实现了一个`eval`函数。我认为这可以很好地转换为C程序，因此决定尝试创建自己的LISP实现。</p>
+<p>这本书涵盖了许多主题，但是下半部分详细介绍了如何对LISP程序进行求值(eval)，也就是使用LISP本身实现了一个 <code>eval</code> 函数。我认为这可以很好地转换为C程序，因此决定尝试创建自己的LISP实现。</p>
 </div>
 <div class="paragraph">
 <p>作为一名专业程序员，我将大部分时间都花在编写C和C++上。其余大多数是Java。有很多语言在那里，每个都有自己的优点值得商榷，但我想证明实现一个LISP机器是一件多简单的事情，甚至使用像C语言这样的底层语言来实现。</p>
@@ -1432,11 +1436,151 @@ $ gcc lisp.c -lreadline -o lisp</code></pre>
 <pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(parent (identifier . value)...)</code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>所以上面的表：绑定所对应的环境如下（没有parent）：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(NIL (FOO . 42) (BAR . NIL) (BAZ . (X Y Z)))</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>以下的C代码创建了一个空环境，这个空环境的父环境是parent（parent也可以是NIL）</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">Atom env_create(Atom parent)
+{
+    return cons(parent, nil);
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>接下来我们写两个函数用来获取和创建环境中的绑定。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int env_get(Atom env, Atom symbol, Atom *result)
+{
+    Atom parent = car(env);
+    Atom bs = cdr(env);
+
+    while (!nilp(bs)) {
+        Atom b = car(bs);
+        if (car(b).value.symbol == symbol.value.symbol) {
+            *result = cdr(b);
+            return Error_OK;
+        }
+        bs = cdr(bs);
+    }
+
+    if (nilp(parent))
+        return Error_Unbound;
+
+    return env_get(parent, symbol, result);
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>由于我们禁止命名两个相同名字的符号，所以我们这里不需要调用 <code>strcmp</code> 函数，这意味着 <code>lookup</code> 函数运行起来速度不会太慢。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int env_set(Atom env, Atom symbol, Atom value)
+{
+    Atom bs = cdr(env);
+    Atom b = nil;
+
+    while (!nilp(bs)) {
+        b = car(bs);
+        if (car(b).value.symbol == symbol.value.symbol) {
+            cdr(b) = value;
+            return Error_OK;
+        }
+        bs = cdr(bs);
+    }
+
+    b = cons(symbol, value);
+    cdr(env) = cons(b, cdr(env));
+
+    return Error_OK;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>只有 <code>env_get</code> 函数会递归的去检查父环境。因为我们并不想修改父环境的绑定。</p>
+</div>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_求值">4.3. 求值</h3>
-
+<div class="paragraph">
+<p>我们需要对表达式进行求值。求值过程的输入是一个表达式和一个环境，输出是一个值。让我们规定一下求值的规则。</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>字面量的求值结果是它本身。</p>
+</li>
+<li>
+<p>环境可以让我们找到一个标识符所对应的值是什么。如果环境中不存在一个标识符所对应的值，那么对这个标识符求值会返回错误。</p>
+</li>
+<li>
+<p>一个列表表达式如果具有以下某个操作符，就成为一个 <em>特殊形式</em> (special form)：</p>
+</li>
+<li>
+<p><strong>QUOTE</strong> ：表达式 <code>(QUOTE EXPR)</code> 的求值结果是： <code>EXPR</code> 。这个 <code>EXPR</code> 被直接返回，并没有进行求值。</p>
+</li>
+<li>
+<p><strong>DEFINE</strong> ：对表达式 <code>(DEFINE SYMBOL EXPR)</code> 进行求值将会创建一个针对 <code>SYMBOL</code> 在环境中的绑定，或者修改这个 <code>SYMBOL</code> 在环境中的绑定。 <code>SYMBOL</code> 将会绑定到 <code>EXPR</code> 的求值结果。 <code>DEFINE</code> 表达式的求值结果将返回 <code>SYMBOL</code> 。</p>
+</li>
+<li>
+<p>对其他任何形式的表达式进行求值都是无效的。</p>
+</li>
+</ul>
+</div>
+<div class="sect3">
+<h4 id="_实现_4">4.3.1. 实现</h4>
+<div class="paragraph">
+<p>我们需要检查一下一个表达式是否是正规列表（proper list）。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int listp(Atom expr)
+{
+    while (!nilp(expr)) {
+        if (expr.type != AtomType_Pair)
+            return 0;
+        expr = cdr(expr);
+    }
+    return 1;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Error枚举类型需要一些更多的选项：</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Error_Unbound</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">试图去对一个不存在绑定的符号求值</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Error_Args</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">一个列表表达式比预期的长或者短</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Error_Type</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">表达式中对象的类型和预期的不一样（类型错误）</p></td>
+</tr>
+</tbody>
+</table>
+</div>
 </div>
 </div>
 </div>
@@ -1515,7 +1659,7 @@ $ gcc lisp.c -lreadline -o lisp</code></pre>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-05-19 16:11:41 +0800
+Last updated 2021-05-21 13:21:35 +0800
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>

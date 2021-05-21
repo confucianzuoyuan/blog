@@ -13,7 +13,7 @@
 
 早在几年前，我开始使用LISP。我阅读了《计算机程序的结构和解释》。你需要阅读一下这本书。
 
-这本书涵盖了许多主题，但是下半部分详细介绍了如何对LISP程序进行求值(eval)，也就是使用LISP本身实现了一个`eval`函数。我认为这可以很好地转换为C程序，因此决定尝试创建自己的LISP实现。
+这本书涵盖了许多主题，但是下半部分详细介绍了如何对LISP程序进行求值(eval)，也就是使用LISP本身实现了一个 `eval` 函数。我认为这可以很好地转换为C程序，因此决定尝试创建自己的LISP实现。
 
 作为一名专业程序员，我将大部分时间都花在编写C和C++上。其余大多数是Java。有很多语言在那里，每个都有自己的优点值得商榷，但我想证明实现一个LISP机器是一件多简单的事情，甚至使用像C语言这样的底层语言来实现。
 
@@ -820,9 +820,110 @@ $ gcc lisp.c -lreadline -o lisp
 (parent (identifier . value)...)
 ----
 
+所以上面的表：绑定所对应的环境如下（没有parent）：
 
+[source,scheme]
+----
+(NIL (FOO . 42) (BAR . NIL) (BAZ . (X Y Z)))
+----
+
+以下的C代码创建了一个空环境，这个空环境的父环境是parent（parent也可以是NIL）
+
+[source,c]
+----
+Atom env_create(Atom parent)
+{
+    return cons(parent, nil);
+}
+----
+
+接下来我们写两个函数用来获取和创建环境中的绑定。
+
+[source,c]
+----
+int env_get(Atom env, Atom symbol, Atom *result)
+{
+    Atom parent = car(env);
+    Atom bs = cdr(env);
+
+    while (!nilp(bs)) {
+        Atom b = car(bs);
+        if (car(b).value.symbol == symbol.value.symbol) {
+            *result = cdr(b);
+            return Error_OK;
+        }
+        bs = cdr(bs);
+    }
+
+    if (nilp(parent))
+        return Error_Unbound;
+
+    return env_get(parent, symbol, result);
+}
+----
+
+由于我们禁止命名两个相同名字的符号，所以我们这里不需要调用 `strcmp` 函数，这意味着 `lookup` 函数运行起来速度不会太慢。
+
+[source,c]
+----
+int env_set(Atom env, Atom symbol, Atom value)
+{
+    Atom bs = cdr(env);
+    Atom b = nil;
+
+    while (!nilp(bs)) {
+        b = car(bs);
+        if (car(b).value.symbol == symbol.value.symbol) {
+            cdr(b) = value;
+            return Error_OK;
+        }
+        bs = cdr(bs);
+    }
+
+    b = cons(symbol, value);
+    cdr(env) = cons(b, cdr(env));
+
+    return Error_OK;
+}
+----
+
+只有 `env_get` 函数会递归的去检查父环境。因为我们并不想修改父环境的绑定。
 
 === 求值
+
+我们需要对表达式进行求值。求值过程的输入是一个表达式和一个环境，输出是一个值。让我们规定一下求值的规则。
+
+* 字面量的求值结果是它本身。
+* 环境可以让我们找到一个标识符所对应的值是什么。如果环境中不存在一个标识符所对应的值，那么对这个标识符求值会返回错误。
+* 一个列表表达式如果具有以下某个操作符，就成为一个 _特殊形式_ (special form)：
+    * *QUOTE* ：表达式 `(QUOTE EXPR)` 的求值结果是： `EXPR` 。这个 `EXPR` 被直接返回，并没有进行求值。
+    * *DEFINE* ：对表达式 `(DEFINE SYMBOL EXPR)` 进行求值将会创建一个针对 `SYMBOL` 在环境中的绑定，或者修改这个 `SYMBOL` 在环境中的绑定。 `SYMBOL` 将会绑定到 `EXPR` 的求值结果。 `DEFINE` 表达式的求值结果将返回 `SYMBOL` 。
+* 对其他任何形式的表达式进行求值都是无效的。
+
+==== 实现
+
+我们需要检查一下一个表达式是否是正规列表（proper list）。
+
+[source,c]
+----
+int listp(Atom expr)
+{
+    while (!nilp(expr)) {
+        if (expr.type != AtomType_Pair)
+            return 0;
+        expr = cdr(expr);
+    }
+    return 1;
+}
+----
+
+Error枚举类型需要一些更多的选项：
+
+|===
+| Error_Unbound | 试图去对一个不存在绑定的符号求值
+| Error_Args    | 一个列表表达式比预期的长或者短
+| Error_Type    | 表达式中对象的类型和预期的不一样（类型错误）
+|===
 
 == 第五章：内建函数
 
