@@ -473,6 +473,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#_求值">4.3. 求值</a>
 <ul class="sectlevel3">
 <li><a href="#_实现_4">4.3.1. 实现</a></li>
+<li><a href="#_测试_4">4.3.2. 测试</a></li>
 </ul>
 </li>
 </ul>
@@ -1580,6 +1581,129 @@ $ gcc lisp.c -lreadline -o lisp</code></pre>
 </tr>
 </tbody>
 </table>
+<div class="paragraph">
+<p>我们直接将表达式的求值规则翻译成C语言就可以了。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int eval_expr(Atom expr, Atom env, Atom *result)
+{
+    Atom op, args;
+    Error err;
+
+    if (expr.type == AtomType_Symbol) {
+        return env_get(env, expr, result);
+    } else if (expr.type != AtomType_Pair) {
+        *result = expr;
+        return Error_OK;
+    }
+
+    if (!listp(expr))
+        return Error_Syntax;
+
+    op = car(expr);
+    args = cdr(expr);
+
+    if (op.type == AtomType_Symbol) {
+        if (strcmp(op.value.symbol, "QUOTE") == 0) {
+            if (nilp(args) || !nilp(cdr(args)))
+                return Error_Args;
+
+            *result = car(args);
+            return Error_OK;
+        } else if (strcmp(op.value.symbol, "DEFINE") == 0) {
+            Atom sym, val;
+
+            if (nilp(args) || nilp(cdr(args)) || !nilp(cdr(cdr(args))))
+                return Error_Args;
+
+            sym = car(args);
+            if (sym.type != AtomType_Symbol)
+                return Error_Type;
+
+            err = eval_expr(car(cdr(args)), env, &amp;val);
+            if (err)
+                return err;
+
+            *result = sym;
+            return env_set(env, sym, val);
+        }
+    }
+
+    return Error_Syntax;
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_测试_4">4.3.2. 测试</h4>
+<div class="paragraph">
+<p>将读取-打印循环扩展成为 <code>读取-求值-打印</code> 循环（REPL）。REPL是LISP解释器的核心功能。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int main(int argc, char **argv)
+{
+    Atom env;
+    char *input;
+
+    env = env_create(nil);
+
+    while ((input = readline("&gt; ")) != NULL) {
+        const char *p = input;
+        Error err;
+        Atom expr, result;
+
+        err = read_expr(p, &amp;p, &amp;expr);
+
+        if (!err)
+            err = eval_expr(expr, env, &amp;result);
+
+        switch (err) {
+        case Error_OK:
+            print_expr(result);
+            putchar('\n');
+            break;
+        case Error_Syntax:
+            puts("Syntax error");
+            break;
+        case Error_Unbound:
+            puts("Symbol not bound");
+            break;
+        case Error_Args:
+            puts("Wrong number of arguments");
+            break;
+        case Error_Type:
+            puts("Wrong type");
+            break;
+        }
+
+        free(input);
+    }
+
+    return 0;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>让我们看一下结果：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">&gt; foo
+Symbol not bound
+&gt; (quote foo)
+FOO
+&gt; (define foo 42)
+FOO
+&gt; foo
+42
+&gt; (define foo (quote bar))
+FOO
+&gt; foo
+BAR</code></pre>
+</div>
+</div>
 </div>
 </div>
 </div>
@@ -1659,7 +1783,7 @@ $ gcc lisp.c -lreadline -o lisp</code></pre>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-05-21 13:21:35 +0800
+Last updated 2021-05-21 13:33:13 +0800
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
