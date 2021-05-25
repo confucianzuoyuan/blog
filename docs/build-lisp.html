@@ -478,7 +478,14 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 </ul>
 </li>
-<li><a href="#_第五章内建函数">5. 第五章：内建函数</a></li>
+<li><a href="#_第五章内建函数">5. 第五章：内建函数</a>
+<ul class="sectlevel2">
+<li><a href="#_一种新的atom类型">5.1. 一种新的Atom类型</a></li>
+<li><a href="#_扩展求值器">5.2. 扩展求值器</a></li>
+<li><a href="#_初始环境">5.3. 初始环境</a></li>
+<li><a href="#_测试_5">5.4. 测试</a></li>
+</ul>
+</li>
 <li><a href="#_第六章算术表达式">6. 第六章：算术表达式</a></li>
 <li><a href="#_第七章lambda表达式和闭包">7. 第七章：Lambda表达式和闭包</a></li>
 <li><a href="#_第八章布尔值和短路求值">8. 第八章：布尔值和短路求值</a></li>
@@ -1711,7 +1718,316 @@ BAR</code></pre>
 <div class="sect1">
 <h2 id="_第五章内建函数">5. 第五章：内建函数</h2>
 <div class="sectionbody">
+<div class="paragraph">
+<p>到目前为止，在我们的实现中，我们已经使用了 <code>car</code> ， <code>cdr</code> 和 <code>cons</code> 函数来构造和访问LISP数据。现在，我们将在解释环境中提供相同的功能。</p>
+</div>
+<div class="paragraph">
+<p>我们将扩展列表表达式语法以添加一些新的运算符：</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>(CAR EXPR)</code> ：对 <code>EXPR</code> 进行求值，然后返回求值结果的 <code>car</code> 部分。如果 <code>EXPR</code> 的求值结果既不是 <code>pair</code> 也不是 <code>NIL</code> ，则返回错误。</p>
+</li>
+<li>
+<p><code>(CDR EXPR)</code> ：对 <code>EXPR</code> 进行求值，然后返回求值结果的 <code>cdr</code> 部分。如果 <code>EXPR</code> 的求值结果既不是 <code>pair</code> 也不是 <code>NIL</code> ，则返回错误。</p>
+</li>
+<li>
+<p><code>(CONS A B)</code> ：Evaluates both arguments A and B, and returns a newly constructed pair containing the results.对 <code>A</code> 和 <code>B</code> 进行求值，然后返回包含 <code>A</code> 和 <code>B</code> 的求值结果的 <code>pair</code> 。</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>在上面的定义中，我们允许对 <code>NIL</code> 取 <code>car</code> 部分和 <code>cdr</code> 部分，不像我们之前C版本对 <code>car</code> 和 <code>cdr</code> 的实现。如果对 <code>NIl</code> 取 <code>car</code> 和 <code>cdr</code> 的值定义为 <code>NIL</code> ，那么一些算法会相对容易实现一些。</p>
+</div>
+<div class="paragraph">
+<p>我们选择在 <code>eval_expr</code> 函数中添加一些分支条件来实现上面定义的内置函数，就像我们之前实现 <code>QUOTE</code> 和 <code>DEFINE</code> 一样。尽管如此，我们想在未来添加更多的运算符，而将每个运算符都添加到 <code>eval_expr</code> 中会让函数变得很长。所以我们现在来介绍一下函数的概念。</p>
+</div>
+<div class="paragraph">
+<p><strong>函数</strong></p>
+</div>
+<div class="paragraph">
+<p>一个函数就是一个代码片段，这个代码片段将一些参数转换成了一个值。如果 <code>eval_expr</code> 碰到了一个列表表达式，而列表表达式中有一个函数是运算符，那么 <code>eval_expr</code> 所要做的就是执行函数的代码片段，然后将所得到的求值结果作为表达式的结果返回。</p>
+</div>
+<div class="paragraph">
+<p>实现函数的方式就是创建一些C函数，可以被 <code>eval_expr</code> 所调用。我们称这些函数为内置函数或者原始函数。让我们来看一下如何扩展我们的LISP解释器将函数包含进来。</p>
+</div>
+<div class="sect2">
+<h3 id="_一种新的atom类型">5.1. 一种新的Atom类型</h3>
+<div class="paragraph">
+<p><code>eval_expr</code> 将通过C的函数指针来调用内置函数，所以内置函数的类型必须一样：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">typedef int (*Builtin)(struct Atom args, struct Atom *result);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>上面是一个函数指针类型，这个函数指针的类型是 <code>Builtin</code> ，接收两个参数，返回值是 <code>int</code> 。</p>
+</div>
+<div class="paragraph">
+<p>为了可以在表达式中出现函数，我们需要一种新的 <code>atom</code> 类型来表示它们。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">struct Atom {
+    enum {
+        .
+        .
+        .
+        AtomType_Builtin
+    } type;
 
+    union {
+        .
+        .
+        .
+        Builtin builtin;
+    } value;
+};</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>我们之前写过的代码用". . ."表示省略。为了代码的完整性， <code>print_expr</code> 需要知道如何显示新的 <code>atom</code> 类型：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">void print_expr(Atom atom)
+{
+    switch (atom.type) {
+    .
+    .
+    .
+    case AtomType_Builtin:
+        printf("#&lt;BUILTIN:%p&gt;", atom.value.builtin);
+        break;
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>最终，我们写一个辅助方法来创建新的 <code>atom</code> 类型：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">Atom make_builtin(Builtin fn)
+{
+    Atom a;
+    a.type = AtomType_Builtin;
+    a.value.builtin = fn;
+    return a;
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_扩展求值器">5.2. 扩展求值器</h3>
+<div class="paragraph">
+<p>我们将对参数列表进行 <em>浅拷贝</em> 。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">Atom copy_list(Atom list)
+{
+    Atom a, p;
+
+    if (nilp(list))
+        return nil;
+
+    a = cons(car(list), nil);
+    p = a;
+    list = cdr(list);
+
+    while (!nilp(list)) {
+        cdr(p) = cons(car(list), nil);
+        p = cdr(p);
+        list = cdr(list);
+    }
+
+    return a;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><strong>apply</strong> 仅仅只是针对一个参数列表调用内置函数。我们将在后面扩展这个函数，因为我们需要处理一些其他的求值函数。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int apply(Atom fn, Atom args, Atom *result)
+{
+    if (fn.type == AtomType_Builtin)
+        return (*fn.value.builtin)(args, result);
+
+    return Error_Type;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>如果列表表达式不是我们之前定义过的 <em>特殊形式</em> ，那么我们将假设运算符将会被求值成一个函数。我们将对参数列表中的每一个参数进行求值，然后使用 <code>apply</code> 来将函数作用到参数列表求值以后的结果列表上。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int eval_expr(Atom expr, Atom env, Atom *result)
+{
+    Atom op, args, p;
+    Error err;
+
+    .
+    .
+    .
+
+    if (op.type == AtomType_Symbol) {
+        .
+        .
+        .
+    }
+
+    /* Evaluate operator */
+    err = eval_expr(op, env, &amp;op);
+    if (err)
+        return err;
+
+    /* Evaulate arguments */
+    args = copy_list(args);
+    p = args;
+    while (!nilp(p)) {
+        err = eval_expr(car(p), env, &amp;car(p));
+        if (err)
+            return err;
+
+        p = cdr(p);
+    }
+
+    return apply(op, args, result);
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>我们在对参数列表进行求值时，先对参数列表进行浅拷贝。这样就避免了把旧的参数列表覆盖掉。因为我们可能会再一次使用旧的参数列表。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_初始环境">5.3. 初始环境</h3>
+<div class="paragraph">
+<p>之前我们为LISP的 <code>读取——求值——打印</code> 循环创建过一个空环境。用户没有办法创建表示内置函数的 <code>atom</code> 类型。所以我们会在初始环境中绑定好内置函数。</p>
+</div>
+<div class="paragraph">
+<p>以下是函数：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int builtin_car(Atom args, Atom *result)
+{
+    if (nilp(args) || !nilp(cdr(args)))
+        return Error_Args;
+
+    if (nilp(car(args)))
+        *result = nil;
+    else if (car(args).type != AtomType_Pair)
+        return Error_Type;
+    else
+        *result = car(car(args));
+
+    return Error_OK;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>函数中的大部分代码都是错误处理和类型检查。这样来创建函数真是一件烦人的事情。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int builtin_cdr(Atom args, Atom *result)
+{
+    if (nilp(args) || !nilp(cdr(args)))
+        return Error_Args;
+
+    if (nilp(car(args)))
+        *result = nil;
+    else if (car(args).type != AtomType_Pair)
+        return Error_Type;
+    else
+        *result = cdr(car(args));
+
+    return Error_OK;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>builtin_cdr</code> 和 <code>builtin_car</code> 几乎是一样的。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int builtin_cons(Atom args, Atom *result)
+{
+    if (nilp(args) || nilp(cdr(args)) || !nilp(cdr(cdr(args))))
+        return Error_Args;
+
+    *result = cons(car(args), car(cdr(args)));
+
+    return Error_OK;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>有了以上的函数，我们就可以使用 <code>env_set</code> 函数来创建绑定了。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int main(int argc, char **argv)
+{
+    Atom env;
+    char *input;
+
+    env = env_create(nil);
+
+    /* Set up the initial environment */
+    env_set(env, make_sym("CAR"), make_builtin(builtin_car));
+    env_set(env, make_sym("CDR"), make_builtin(builtin_cdr));
+    env_set(env, make_sym("CONS"), make_builtin(builtin_cons));
+
+    while ((input = readline("&gt; ")) != NULL) {
+        .
+        .
+        .
+    }
+
+    return 0;
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_测试_5">5.4. 测试</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">&gt; (define foo 1)
+FOO
+&gt; (define bar 2)
+BAR
+&gt; (cons foo bar)
+(1 . 2)
+&gt; (define baz (quote (a b c)))
+BAZ
+&gt; (car baz)
+A
+&gt; (cdr baz)
+(B C)</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<code>(CONS FOO BAR)</code> 和 <code>(QUOTE (FOO . BAR))</code> 是不一样的。前者将会对参数列表进行求值，然后创建一个新的 <code>pair</code> 。
+</td>
+</tr>
+</table>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -1783,7 +2099,7 @@ BAR</code></pre>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-05-21 13:33:13 +0800
+Last updated 2021-05-25 15:00:09 +0800
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
