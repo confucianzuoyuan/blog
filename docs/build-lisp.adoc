@@ -1314,6 +1314,75 @@ NOTE: `(CONS FOO BAR)` 和 `(QUOTE (FOO . BAR))` 是不一样的。前者将会�
 
 == 第六章：算术表达式
 
+到目前为止，我们所能做的就是创建和命名对象。这些对象中有些是数字——自然，我们想对这些数字进行计算。
+
+在上一章中，我们看到了如何创建内置函数来告诉eval_expr如何将参数处理为返回值。现在，我们将再创建四个内建函数来执行基本的算术运算。
+
+|===
+| Expression | Result
+| (+ X Y) | The sum of X and Y
+| (- X Y) | The difference of X and Y
+| (* X Y) | The product of X and Y
+| (/ X Y) | The quotient of X and Y
+|===
+
+在上面的定义中，当我们写“X和Y的总和”时，我们真正的意思是“通过求值X和Y所获得的值的总和”。请记住，默认情况下，eval_expr将对函数的所有参数求值；这通常是我们想要发生的事情，因此从现在开始，我们将不会在意图明显的地方明确声明这一点。
+
+=== 实现
+
+再一次，几乎我们所有的函数都包括检查是否提供了正确的参数。最后，通过调用 `make_int` 构造结果。
+
+[source,c]
+----
+int builtin_add(Atom args, Atom *result)
+{
+    Atom a, b;
+
+    if (nilp(args) || nilp(cdr(args)) || !nilp(cdr(cdr(args))))
+        return Error_Args;
+
+    a = car(args);
+    b = car(cdr(args));
+
+    if (a.type != AtomType_Integer || b.type != AtomType_Integer)
+        return Error_Type;
+
+    *result = make_int(a.value.integer + b.value.integer);
+
+    return Error_OK;
+}
+----
+
+其他三个函数仅相差一个字符，因此在此将其省略。
+
+最后，我们需要在初始环境中为我们的新功能创建绑定：
+
+[source,c]
+----
+env_set(env, make_sym("+"), make_builtin(builtin_add));
+env_set(env, make_sym("-"), make_builtin(builtin_subtract));
+env_set(env, make_sym("*"), make_builtin(builtin_multiply));
+env_set(env, make_sym("/"), make_builtin(builtin_divide));
+----
+
+=== 测试
+
+现在，我们有了自己的LISP风格的计算器。
+
+[source,text]
+----
+> (+ 1 1)
+2
+> (define x (* 6 9))
+X
+> x
+54
+> (- x 12)
+42
+----
+
+在上面的最后一个表达式中，请注意X是一个符号，而不是整数。我们必须对参数进行求值，以便builtin_subtract可以对绑定到X的整数值进行运算，而不是对符号X本身进行运算。同样，绑定到X的值是计算表达式（* 6 9）的整数结果。
+
 == 第七章：Lambda表达式和闭包
 
 == 第八章：布尔值和短路求值
