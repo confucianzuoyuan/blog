@@ -1046,6 +1046,272 @@ BAR
 
 == 第五章：内建函数
 
+到目前为止，在我们的实现中，我们已经使用了 `car` ， `cdr` 和 `cons` 函数来构造和访问LISP数据。现在，我们将在解释环境中提供相同的功能。
+
+我们将扩展列表表达式语法以添加一些新的运算符：
+
+* `(CAR EXPR)` ：对 `EXPR` 进行求值，然后返回求值结果的 `car` 部分。如果 `EXPR` 的求值结果既不是 `pair` 也不是 `NIL` ，则返回错误。
+* `(CDR EXPR)` ：对 `EXPR` 进行求值，然后返回求值结果的 `cdr` 部分。如果 `EXPR` 的求值结果既不是 `pair` 也不是 `NIL` ，则返回错误。
+* `(CONS A B)` ：Evaluates both arguments A and B, and returns a newly constructed pair containing the results.对 `A` 和 `B` 进行求值，然后返回包含 `A` 和 `B` 的求值结果的 `pair` 。
+
+在上面的定义中，我们允许对 `NIL` 取 `car` 部分和 `cdr` 部分，不像我们之前C版本对 `car` 和 `cdr` 的实现。如果对 `NIl` 取 `car` 和 `cdr` 的值定义为 `NIL` ，那么一些算法会相对容易实现一些。
+
+我们选择在 `eval_expr` 函数中添加一些分支条件来实现上面定义的内置函数，就像我们之前实现 `QUOTE` 和 `DEFINE` 一样。尽管如此，我们想在未来添加更多的运算符，而将每个运算符都添加到 `eval_expr` 中会让函数变得很长。所以我们现在来介绍一下函数的概念。
+
+*函数*
+
+一个函数就是一个代码片段，这个代码片段将一些参数转换成了一个值。如果 `eval_expr` 碰到了一个列表表达式，而列表表达式中有一个函数是运算符，那么 `eval_expr` 所要做的就是执行函数的代码片段，然后将所得到的求值结果作为表达式的结果返回。
+
+实现函数的方式就是创建一些C函数，可以被 `eval_expr` 所调用。我们称这些函数为内置函数或者原始函数。让我们来看一下如何扩展我们的LISP解释器将函数包含进来。
+
+=== 一种新的Atom类型
+
+`eval_expr` 将通过C的函数指针来调用内置函数，所以内置函数的类型必须一样：
+
+[source,c]
+----
+typedef int (*Builtin)(struct Atom args, struct Atom *result);
+----
+
+上面是一个函数指针类型，这个函数指针的类型是 `Builtin` ，接收两个参数，返回值是 `int` 。
+
+为了可以在表达式中出现函数，我们需要一种新的 `atom` 类型来表示它们。
+
+[source,c]
+----
+struct Atom {
+    enum {
+        .
+        .
+        .
+        AtomType_Builtin
+    } type;
+
+    union {
+        .
+        .
+        .
+        Builtin builtin;
+    } value;
+};
+----
+
+我们之前写过的代码用". . ."表示省略。为了代码的完整性， `print_expr` 需要知道如何显示新的 `atom` 类型：
+
+[source,c]
+----
+void print_expr(Atom atom)
+{
+    switch (atom.type) {
+    .
+    .
+    .
+    case AtomType_Builtin:
+        printf("#<BUILTIN:%p>", atom.value.builtin);
+        break;
+    }
+}
+----
+
+最终，我们写一个辅助方法来创建新的 `atom` 类型：
+
+[source,c]
+----
+Atom make_builtin(Builtin fn)
+{
+    Atom a;
+    a.type = AtomType_Builtin;
+    a.value.builtin = fn;
+    return a;
+}
+----
+
+=== 扩展求值器
+
+我们将对参数列表进行 _浅拷贝_ 。
+
+[source,c]
+----
+Atom copy_list(Atom list)
+{
+    Atom a, p;
+
+    if (nilp(list))
+        return nil;
+
+    a = cons(car(list), nil);
+    p = a;
+    list = cdr(list);
+
+    while (!nilp(list)) {
+        cdr(p) = cons(car(list), nil);
+        p = cdr(p);
+        list = cdr(list);
+    }
+
+    return a;
+}
+----
+
+*apply* 仅仅只是针对一个参数列表调用内置函数。我们将在后面扩展这个函数，因为我们需要处理一些其他的求值函数。
+
+[source,c]
+----
+int apply(Atom fn, Atom args, Atom *result)
+{
+    if (fn.type == AtomType_Builtin)
+        return (*fn.value.builtin)(args, result);
+
+    return Error_Type;
+}
+----
+
+如果列表表达式不是我们之前定义过的 _特殊形式_ ，那么我们将假设运算符将会被求值成一个函数。我们将对参数列表中的每一个参数进行求值，然后使用 `apply` 来将函数作用到参数列表求值以后的结果列表上。
+
+[source,c]
+----
+int eval_expr(Atom expr, Atom env, Atom *result)
+{
+    Atom op, args, p;
+    Error err;
+
+    .
+    .
+    .
+
+    if (op.type == AtomType_Symbol) {
+        .
+        .
+        .
+    }
+
+    /* Evaluate operator */
+    err = eval_expr(op, env, &op);
+    if (err)
+        return err;
+
+    /* Evaulate arguments */
+    args = copy_list(args);
+    p = args;
+    while (!nilp(p)) {
+        err = eval_expr(car(p), env, &car(p));
+        if (err)
+            return err;
+
+        p = cdr(p);
+    }
+
+    return apply(op, args, result);
+}
+----
+
+我们在对参数列表进行求值时，先对参数列表进行浅拷贝。这样就避免了把旧的参数列表覆盖掉。因为我们可能会再一次使用旧的参数列表。
+
+=== 初始环境
+
+之前我们为LISP的 `读取——求值——打印` 循环创建过一个空环境。用户没有办法创建表示内置函数的 `atom` 类型。所以我们会在初始环境中绑定好内置函数。
+
+以下是函数：
+
+[source,c]
+----
+int builtin_car(Atom args, Atom *result)
+{
+    if (nilp(args) || !nilp(cdr(args)))
+        return Error_Args;
+
+    if (nilp(car(args)))
+        *result = nil;
+    else if (car(args).type != AtomType_Pair)
+        return Error_Type;
+    else
+        *result = car(car(args));
+
+    return Error_OK;
+}
+----
+
+函数中的大部分代码都是错误处理和类型检查。这样来创建函数真是一件烦人的事情。
+
+[source,c]
+----
+int builtin_cdr(Atom args, Atom *result)
+{
+    if (nilp(args) || !nilp(cdr(args)))
+        return Error_Args;
+
+    if (nilp(car(args)))
+        *result = nil;
+    else if (car(args).type != AtomType_Pair)
+        return Error_Type;
+    else
+        *result = cdr(car(args));
+
+    return Error_OK;
+}
+----
+
+`builtin_cdr` 和 `builtin_car` 几乎是一样的。
+
+[source,c]
+----
+int builtin_cons(Atom args, Atom *result)
+{
+    if (nilp(args) || nilp(cdr(args)) || !nilp(cdr(cdr(args))))
+        return Error_Args;
+
+    *result = cons(car(args), car(cdr(args)));
+
+    return Error_OK;
+}
+----
+
+有了以上的函数，我们就可以使用 `env_set` 函数来创建绑定了。
+
+[source,c]
+----
+int main(int argc, char **argv)
+{
+    Atom env;
+    char *input;
+
+    env = env_create(nil);
+
+    /* Set up the initial environment */
+    env_set(env, make_sym("CAR"), make_builtin(builtin_car));
+    env_set(env, make_sym("CDR"), make_builtin(builtin_cdr));
+    env_set(env, make_sym("CONS"), make_builtin(builtin_cons));
+
+    while ((input = readline("> ")) != NULL) {
+        .
+        .
+        .
+    }
+
+    return 0;
+}
+----
+
+=== 测试
+
+[source,text]
+----
+> (define foo 1)
+FOO
+> (define bar 2)
+BAR
+> (cons foo bar)
+(1 . 2)
+> (define baz (quote (a b c)))
+BAZ
+> (car baz)
+A
+> (cdr baz)
+(B C)
+----
+
+NOTE: `(CONS FOO BAR)` 和 `(QUOTE (FOO . BAR))` 是不一样的。前者将会对参数列表进行求值，然后创建一个新的 `pair` 。
+
 == 第六章：算术表达式
 
 == 第七章：Lambda表达式和闭包
