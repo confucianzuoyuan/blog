@@ -507,7 +507,7 @@ int main(int argc, char **argv)
 NIL
 ----
 
-完整代码如下：
+=== 完整代码
 
 [source,c]
 ----
@@ -1384,6 +1384,197 @@ X
 在上面的最后一个表达式中，请注意X是一个符号，而不是整数。我们必须对参数进行求值，以便builtin_subtract可以对绑定到X的整数值进行运算，而不是对符号X本身进行运算。同样，绑定到X的值是计算表达式（* 6 9）的整数结果。
 
 == 第七章：Lambda表达式和闭包
+
+这是事情开始变得有趣的地方。现在，我们将实现对lambda表达式的支持，这是一种在我们已经可以处理的LISP表达式之外动态构建函数的方法。
+
+Lambda表达式是具有特定语法的列表表达式：
+
+[source,scheme]
+----
+(LAMBDA (arg...) expr...)
+----
+
+求值lambda表达式的结果是一种新型的对象，我们称其为闭包。闭包可以以与内置函数相同的方式在列表表达式中使用。在这种情况下，参数将绑定到lambda表达式中以 `arg...` 列出的符号。函数的主体由表达式 `expr...` 组成，这些表达式将依次求值。求值最终表达式的结果是将参数应用于闭包的结果。
+
+这是一个非常密集的定义，因此这是一个我们如何使用lambda表达式的示例：
+
+[source,scheme]
+----
+(DEFINE SQUARE (LAMBDA (X) (* X X)))
+----
+
+`SQUARE` 现在是一个函数，有一个参数X，返回值是X的平方。所以对 `(SQUARE 3)` 进行求值应该返回9。
+
+=== 实现
+
+我们将使用列表来表示闭包：
+
+[source,scheme]
+----
+(env (arg...) expr...)
+----
+
+env是定义闭包的环境。这是必需的，以允许lambda函数使用绑定而不必将其作为参数传递。例如，回想一下，CAR在初始环境中绑定到了我们原始的builtin_car函数。
+
+第一个任务是为Atom结构的type字段添加一个新的常量：
+
+[source,c]
+----
+struct Atom {
+    enum {
+        .
+        .
+        .
+        AtomType_Closure
+    } type;
+
+    union {
+        .
+        .
+        .
+    } value;
+};
+----
+
+由于闭包只是常规列表，因此无需添加任何值。
+
+像其他原子类型一样，我们将创建一个实用程序函数来初始化它们。 `make_closure` 与其他命令不同，对参数执行一些验证，因此需要返回错误代码。
+
+[source,c]
+----
+int make_closure(Atom env, Atom args, Atom body, Atom *result)
+{
+    Atom p;
+
+    if (!listp(args) || !listp(body))
+        return Error_Syntax;
+
+    /* Check argument names are all symbols */
+    p = args;
+    while (!nilp(p)) {
+        if (car(p).type != AtomType_Symbol)
+            return Error_Type;
+        p = cdr(p);
+    }
+
+    *result = cons(env, cons(args, body));
+    result->type = AtomType_Closure;
+
+    return Error_OK;
+}
+----
+
+接下来是eval中的另一种特殊情况，每当遇到lambda表达式时都创建一个闭包。
+
+[source,c]
+----
+int eval_expr(Atom expr, Atom env, Atom *result)
+{
+    .
+    .
+    .
+    if (op.type == AtomType_Symbol) {
+        if (strcmp(op.value.symbol, "QUOTE") == 0) {
+        .
+        .
+        .
+        } else if (strcmp(op.value.symbol, "LAMBDA") == 0) {
+            if (nilp(args) || nilp(cdr(args)))
+                return Error_Args;
+
+            return make_closure(env, car(args), cdr(args), result);
+        }
+    }
+    .
+    .
+    .
+}
+----
+
+上面的SQUARE示例的函数体用X表示。为了对函数体进行求值，我们需要创建一个新环境，其中X绑定到参数的值：
+
+[source,scheme]
+----
+(closure-env (X . 3))
+----
+
+父环境 `closure-env` 是存储在闭包中的环境。
+
+最后，我们扩展 `apply` 函数以创建新环境，并为函数体中的每个表达式调用eval。
+
+[source,c]
+----
+int apply(Atom fn, Atom args, Atom *result)
+{
+    Atom env, arg_names, body;
+
+    if (fn.type == AtomType_Builtin)
+        return (*fn.value.builtin)(args, result);
+    else if (fn.type != AtomType_Closure)
+        return Error_Type;
+
+    env = env_create(car(fn));
+    arg_names = car(cdr(fn));
+    body = cdr(cdr(fn));
+
+    /* Bind the arguments */
+    while (!nilp(arg_names)) {
+        if (nilp(args))
+            return Error_Args;
+        env_set(env, car(arg_names), car(args));
+        arg_names = cdr(arg_names);
+        args = cdr(args);
+    }
+    if (!nilp(args))
+        return Error_Args;
+
+    /* Evaluate the body */
+    while (!nilp(body)) {
+        Error err = eval_expr(car(body), env, result);
+        if (err)
+            return err;
+        body = cdr(body);
+    }
+
+    return Error_OK;
+}
+----
+
+=== 测试
+
+让我们检查一下我们的SQUARE函数是否按预期工作。
+
+[source,scheme]
+----
+> (define square (lambda (x) (* x x)))
+SQUARE
+> (square 3)
+9
+> (square 4)
+16
+----
+
+当然，lambda表达式不必绑定到符号——我们可以创建匿名函数。
+
+[source,scheme]
+----
+> ((lambda (x) (- x 2)) 7)
+5
+----
+
+函数式编程的爱好者将很高兴看到我们现在可以做这种事情：
+
+[source,scheme]
+----
+> (define make-adder (lambda (x) (lambda (y) (+ x y))))
+MAKE-ADDER
+> (define add-two (make-adder 2))
+ADD-TWO
+> (add-two 5)
+7
+----
+
+你知道值“2”存储在哪里吗？
 
 == 第八章：布尔值和短路求值
 

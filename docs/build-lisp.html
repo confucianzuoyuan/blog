@@ -460,6 +460,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#_词法分析lexer">3.2. 词法分析（Lexer）</a></li>
 <li><a href="#_解析器">3.3. 解析器</a></li>
 <li><a href="#_测试_3">3.4. 测试</a></li>
+<li><a href="#_完整代码">3.5. 完整代码</a></li>
 </ul>
 </li>
 <li><a href="#_第四章表达式环境和求值">4. 第四章：表达式、环境和求值</a>
@@ -492,7 +493,12 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#_测试_6">6.2. 测试</a></li>
 </ul>
 </li>
-<li><a href="#_第七章lambda表达式和闭包">7. 第七章：Lambda表达式和闭包</a></li>
+<li><a href="#_第七章lambda表达式和闭包">7. 第七章：Lambda表达式和闭包</a>
+<ul class="sectlevel2">
+<li><a href="#_实现_6">7.1. 实现</a></li>
+<li><a href="#_测试_7">7.2. 测试</a></li>
+</ul>
+</li>
 <li><a href="#_第八章布尔值和短路求值">8. 第八章：布尔值和短路求值</a></li>
 <li><a href="#_第九章语法糖">9. 第九章：语法糖</a></li>
 <li><a href="#_第十章变长参数函数">10. 第十章：变长参数函数</a></li>
@@ -1104,9 +1110,9 @@ Atom make_sym(const char *s)
 NIL</code></pre>
 </div>
 </div>
-<div class="paragraph">
-<p>完整代码如下：</p>
 </div>
+<div class="sect2">
+<h3 id="_完整代码">3.5. 完整代码</h3>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">#include &lt;stdio.h&gt;
@@ -2142,7 +2148,217 @@ X
 <div class="sect1">
 <h2 id="_第七章lambda表达式和闭包">7. 第七章：Lambda表达式和闭包</h2>
 <div class="sectionbody">
+<div class="paragraph">
+<p>这是事情开始变得有趣的地方。现在，我们将实现对lambda表达式的支持，这是一种在我们已经可以处理的LISP表达式之外动态构建函数的方法。</p>
+</div>
+<div class="paragraph">
+<p>Lambda表达式是具有特定语法的列表表达式：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(LAMBDA (arg...) expr...)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>求值lambda表达式的结果是一种新型的对象，我们称其为闭包。闭包可以以与内置函数相同的方式在列表表达式中使用。在这种情况下，参数将绑定到lambda表达式中以 <code>arg&#8230;&#8203;</code> 列出的符号。函数的主体由表达式 <code>expr&#8230;&#8203;</code> 组成，这些表达式将依次求值。求值最终表达式的结果是将参数应用于闭包的结果。</p>
+</div>
+<div class="paragraph">
+<p>这是一个非常密集的定义，因此这是一个我们如何使用lambda表达式的示例：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(DEFINE SQUARE (LAMBDA (X) (* X X)))</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>SQUARE</code> 现在是一个函数，有一个参数X，返回值是X的平方。所以对 <code>(SQUARE 3)</code> 进行求值应该返回9。</p>
+</div>
+<div class="sect2">
+<h3 id="_实现_6">7.1. 实现</h3>
+<div class="paragraph">
+<p>我们将使用列表来表示闭包：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(env (arg...) expr...)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>env是定义闭包的环境。这是必需的，以允许lambda函数使用绑定而不必将其作为参数传递。例如，回想一下，CAR在初始环境中绑定到了我们原始的builtin_car函数。</p>
+</div>
+<div class="paragraph">
+<p>第一个任务是为Atom结构的type字段添加一个新的常量：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">struct Atom {
+    enum {
+        .
+        .
+        .
+        AtomType_Closure
+    } type;
 
+    union {
+        .
+        .
+        .
+    } value;
+};</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>由于闭包只是常规列表，因此无需添加任何值。</p>
+</div>
+<div class="paragraph">
+<p>像其他原子类型一样，我们将创建一个实用程序函数来初始化它们。 <code>make_closure</code> 与其他命令不同，对参数执行一些验证，因此需要返回错误代码。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int make_closure(Atom env, Atom args, Atom body, Atom *result)
+{
+    Atom p;
+
+    if (!listp(args) || !listp(body))
+        return Error_Syntax;
+
+    /* Check argument names are all symbols */
+    p = args;
+    while (!nilp(p)) {
+        if (car(p).type != AtomType_Symbol)
+            return Error_Type;
+        p = cdr(p);
+    }
+
+    *result = cons(env, cons(args, body));
+    result-&gt;type = AtomType_Closure;
+
+    return Error_OK;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>接下来是eval中的另一种特殊情况，每当遇到lambda表达式时都创建一个闭包。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int eval_expr(Atom expr, Atom env, Atom *result)
+{
+    .
+    .
+    .
+    if (op.type == AtomType_Symbol) {
+        if (strcmp(op.value.symbol, "QUOTE") == 0) {
+        .
+        .
+        .
+        } else if (strcmp(op.value.symbol, "LAMBDA") == 0) {
+            if (nilp(args) || nilp(cdr(args)))
+                return Error_Args;
+
+            return make_closure(env, car(args), cdr(args), result);
+        }
+    }
+    .
+    .
+    .
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>上面的SQUARE示例的函数体用X表示。为了对函数体进行求值，我们需要创建一个新环境，其中X绑定到参数的值：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(closure-env (X . 3))</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>父环境 <code>closure-env</code> 是存储在闭包中的环境。</p>
+</div>
+<div class="paragraph">
+<p>最后，我们扩展 <code>apply</code> 函数以创建新环境，并为函数体中的每个表达式调用eval。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int apply(Atom fn, Atom args, Atom *result)
+{
+    Atom env, arg_names, body;
+
+    if (fn.type == AtomType_Builtin)
+        return (*fn.value.builtin)(args, result);
+    else if (fn.type != AtomType_Closure)
+        return Error_Type;
+
+    env = env_create(car(fn));
+    arg_names = car(cdr(fn));
+    body = cdr(cdr(fn));
+
+    /* Bind the arguments */
+    while (!nilp(arg_names)) {
+        if (nilp(args))
+            return Error_Args;
+        env_set(env, car(arg_names), car(args));
+        arg_names = cdr(arg_names);
+        args = cdr(args);
+    }
+    if (!nilp(args))
+        return Error_Args;
+
+    /* Evaluate the body */
+    while (!nilp(body)) {
+        Error err = eval_expr(car(body), env, result);
+        if (err)
+            return err;
+        body = cdr(body);
+    }
+
+    return Error_OK;
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_测试_7">7.2. 测试</h3>
+<div class="paragraph">
+<p>让我们检查一下我们的SQUARE函数是否按预期工作。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">&gt; (define square (lambda (x) (* x x)))
+SQUARE
+&gt; (square 3)
+9
+&gt; (square 4)
+16</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>当然，lambda表达式不必绑定到符号——我们可以创建匿名函数。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">&gt; ((lambda (x) (- x 2)) 7)
+5</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>函数式编程的爱好者将很高兴看到我们现在可以做这种事情：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">&gt; (define make-adder (lambda (x) (lambda (y) (+ x y))))
+MAKE-ADDER
+&gt; (define add-two (make-adder 2))
+ADD-TWO
+&gt; (add-two 5)
+7</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>你知道值“2”存储在哪里吗？</p>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -2202,7 +2418,7 @@ X
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-05-25 15:46:25 +0800
+Last updated 2021-05-25 16:10:05 +0800
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
