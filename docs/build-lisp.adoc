@@ -1578,6 +1578,138 @@ ADD-TWO
 
 == 第八章：布尔值和短路求值
 
+=== 布尔值
+
+布尔值是称为true和false的两类值之一。如果我们希望将值解释为布尔值，则如果它属于true值类，则认为它为true，否则为false。
+
+=== 短路求值
+
+到目前为止，我们求值了传递给eval的每个表达式。除特殊形式（如DEFINE和LAMBDA）存储了供以后求值的表达式外，eval必须在遍历整个树之前返回结果。
+
+在本章中，我们将定义另一种特殊形式的IF，它将使eval选择要求值的两个可能表达式中的哪个，而舍弃另一个表达式。
+
+语法如下：
+
+[source,scheme]
+----
+(IF test true-expr false-expr)
+----
+
+其中test，true-expr和false-expr是任意表达式。如果对test求值的结果为真，则IF表达式的结果为true-expr的求值结果，否则为false-expr的求值结果。仅对true-expr和false-expr之一进行求值；另一个表达式将被忽略。
+
+但是什么样的值才是真的？在我们的环境中，我们将NIL定义为false。任何其他值都为true。
+
+这是处理IF表达式的代码。
+
+[source,c]
+----
+int eval_expr(Atom expr, Atom env, Atom *result)
+{
+    .
+    .
+    .
+    if (op.type == AtomType_Symbol) {
+        if (strcmp(op.value.symbol, "QUOTE") == 0) {
+        .
+        .
+        .
+        } else if (strcmp(op.value.symbol, "IF") == 0) {
+            Atom cond, val;
+
+            if (nilp(args) || nilp(cdr(args)) || nilp(cdr(cdr(args)))
+                    || !nilp(cdr(cdr(cdr(args)))))
+                return Error_Args;
+
+            err = eval_expr(car(args), env, &cond);
+            if (err)
+                return err;
+
+            val = nilp(cond) ? car(cdr(cdr(args))) : car(cdr(args));
+            return eval_expr(val, env, result);
+        }
+    }
+    .
+    .
+    .
+}
+----
+
+传统上，如果LISP函数需要返回布尔值并且没有明显的对象可用，则返回符号T。T是绑定到自身的，因此对其进行求值将再次返回符号T。如果符号不是NIL，那就是true。
+
+将T的绑定添加到初始环境：
+
+[source,c]
+----
+env_set(env, make_sym("T"), make_sym("T"));
+----
+
+请记住，如果多次调用具有相同字符串的同一个符号对象，make_sym将返回该对象。
+
+==== 测试
+
+[source,text]
+----
+> (if t 3 4)
+3
+> (if nil 3 4)
+4
+> (if 0 t nil)
+T
+----
+
+和C不一样，0是true，而不是false。
+
+=== 谓词
+
+虽然我们可以在这里停下来，但进行一些测试（除了“is it NIL”之外）会很有用。这是谓词出现的地方。谓词是一个根据某些条件返回true/false值的函数。
+
+我们将定义两个内置谓词，“=”测试数字相等性，“<”测试一个数字是否小于另一个。
+
+函数类似于我们的其他数字内置函数。
+
+[source,c]
+----
+int builtin_numeq(Atom args, Atom *result)
+{
+    Atom a, b;
+
+    if (nilp(args) || nilp(cdr(args)) || !nilp(cdr(cdr(args))))
+        return Error_Args;
+
+    a = car(args);
+    b = car(cdr(args));
+
+    if (a.type != AtomType_Integer || b.type != AtomType_Integer)
+        return Error_Type;
+
+    *result = (a.value.integer == b.value.integer) ? make_sym("T") : nil;
+
+    return Error_OK;
+}
+----
+
+`builtin_less` 遵循相同的模式，此处未显示。
+
+最后，我们必须将它们添加到初始环境中。
+
+[source,c]
+----
+env_set(env, make_sym("="), make_builtin(builtin_numeq));
+env_set(env, make_sym("<"), make_builtin(builtin_less));
+----
+
+==== 测试
+
+[source,text]
+----
+> (= 3 3)
+T
+> (< 11 4)
+NIL
+----
+
+除非存在内存和堆栈限制，否则我们的LISP环境现在已经图灵完备！如果你一直在写代码，则可以确认我们已经在1000行以下C代码中实现了可用编程语言的核心。
+
 == 第九章：语法糖
 
 == 第十章：变长参数函数

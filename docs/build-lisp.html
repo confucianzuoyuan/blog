@@ -499,7 +499,21 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#_测试_7">7.2. 测试</a></li>
 </ul>
 </li>
-<li><a href="#_第八章布尔值和短路求值">8. 第八章：布尔值和短路求值</a></li>
+<li><a href="#_第八章布尔值和短路求值">8. 第八章：布尔值和短路求值</a>
+<ul class="sectlevel2">
+<li><a href="#_布尔值">8.1. 布尔值</a></li>
+<li><a href="#_短路求值">8.2. 短路求值</a>
+<ul class="sectlevel3">
+<li><a href="#_测试_8">8.2.1. 测试</a></li>
+</ul>
+</li>
+<li><a href="#_谓词">8.3. 谓词</a>
+<ul class="sectlevel3">
+<li><a href="#_测试_9">8.3.1. 测试</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li><a href="#_第九章语法糖">9. 第九章：语法糖</a></li>
 <li><a href="#_第十章变长参数函数">10. 第十章：变长参数函数</a></li>
 <li><a href="#_第十一章宏">11. 第十一章：宏</a></li>
@@ -2364,7 +2378,160 @@ ADD-TWO
 <div class="sect1">
 <h2 id="_第八章布尔值和短路求值">8. 第八章：布尔值和短路求值</h2>
 <div class="sectionbody">
+<div class="sect2">
+<h3 id="_布尔值">8.1. 布尔值</h3>
+<div class="paragraph">
+<p>布尔值是称为true和false的两类值之一。如果我们希望将值解释为布尔值，则如果它属于true值类，则认为它为true，否则为false。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_短路求值">8.2. 短路求值</h3>
+<div class="paragraph">
+<p>到目前为止，我们求值了传递给eval的每个表达式。除特殊形式（如DEFINE和LAMBDA）存储了供以后求值的表达式外，eval必须在遍历整个树之前返回结果。</p>
+</div>
+<div class="paragraph">
+<p>在本章中，我们将定义另一种特殊形式的IF，它将使eval选择要求值的两个可能表达式中的哪个，而舍弃另一个表达式。</p>
+</div>
+<div class="paragraph">
+<p>语法如下：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(IF test true-expr false-expr)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>其中test，true-expr和false-expr是任意表达式。如果对test求值的结果为真，则IF表达式的结果为true-expr的求值结果，否则为false-expr的求值结果。仅对true-expr和false-expr之一进行求值；另一个表达式将被忽略。</p>
+</div>
+<div class="paragraph">
+<p>但是什么样的值才是真的？在我们的环境中，我们将NIL定义为false。任何其他值都为true。</p>
+</div>
+<div class="paragraph">
+<p>这是处理IF表达式的代码。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int eval_expr(Atom expr, Atom env, Atom *result)
+{
+    .
+    .
+    .
+    if (op.type == AtomType_Symbol) {
+        if (strcmp(op.value.symbol, "QUOTE") == 0) {
+        .
+        .
+        .
+        } else if (strcmp(op.value.symbol, "IF") == 0) {
+            Atom cond, val;
 
+            if (nilp(args) || nilp(cdr(args)) || nilp(cdr(cdr(args)))
+                    || !nilp(cdr(cdr(cdr(args)))))
+                return Error_Args;
+
+            err = eval_expr(car(args), env, &amp;cond);
+            if (err)
+                return err;
+
+            val = nilp(cond) ? car(cdr(cdr(args))) : car(cdr(args));
+            return eval_expr(val, env, result);
+        }
+    }
+    .
+    .
+    .
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>传统上，如果LISP函数需要返回布尔值并且没有明显的对象可用，则返回符号T。T是绑定到自身的，因此对其进行求值将再次返回符号T。如果符号不是NIL，那就是true。</p>
+</div>
+<div class="paragraph">
+<p>将T的绑定添加到初始环境：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">env_set(env, make_sym("T"), make_sym("T"));</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>请记住，如果多次调用具有相同字符串的同一个符号对象，make_sym将返回该对象。</p>
+</div>
+<div class="sect3">
+<h4 id="_测试_8">8.2.1. 测试</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">&gt; (if t 3 4)
+3
+&gt; (if nil 3 4)
+4
+&gt; (if 0 t nil)
+T</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>和C不一样，0是true，而不是false。</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_谓词">8.3. 谓词</h3>
+<div class="paragraph">
+<p>虽然我们可以在这里停下来，但进行一些测试（除了“is it NIL”之外）会很有用。这是谓词出现的地方。谓词是一个根据某些条件返回true/false值的函数。</p>
+</div>
+<div class="paragraph">
+<p>我们将定义两个内置谓词，“=”测试数字相等性，“&lt;”测试一个数字是否小于另一个。</p>
+</div>
+<div class="paragraph">
+<p>函数类似于我们的其他数字内置函数。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int builtin_numeq(Atom args, Atom *result)
+{
+    Atom a, b;
+
+    if (nilp(args) || nilp(cdr(args)) || !nilp(cdr(cdr(args))))
+        return Error_Args;
+
+    a = car(args);
+    b = car(cdr(args));
+
+    if (a.type != AtomType_Integer || b.type != AtomType_Integer)
+        return Error_Type;
+
+    *result = (a.value.integer == b.value.integer) ? make_sym("T") : nil;
+
+    return Error_OK;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>builtin_less</code> 遵循相同的模式，此处未显示。</p>
+</div>
+<div class="paragraph">
+<p>最后，我们必须将它们添加到初始环境中。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">env_set(env, make_sym("="), make_builtin(builtin_numeq));
+env_set(env, make_sym("&lt;"), make_builtin(builtin_less));</code></pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_测试_9">8.3.1. 测试</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">&gt; (= 3 3)
+T
+&gt; (&lt; 11 4)
+NIL</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>除非存在内存和堆栈限制，否则我们的LISP环境现在已经图灵完备！如果你一直在写代码，则可以确认我们已经在1000行以下C代码中实现了可用编程语言的核心。</p>
+</div>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -2418,7 +2585,7 @@ ADD-TWO
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-05-25 16:10:05 +0800
+Last updated 2021-05-25 16:48:51 +0800
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
