@@ -582,8 +582,21 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 </ul>
 </li>
-<li><a href="#_第十四章延续和尾递归">14. 第十四章：延续和尾递归</a></li>
-<li><a href="#_第十五章垃圾收集">15. 第十五章：垃圾收集</a></li>
+<li><a href="#_第十四章延续和尾递归">14. 第十四章：延续和尾递归</a>
+<ul class="sectlevel2">
+<li><a href="#_实现_10">14.1. 实现</a>
+<ul class="sectlevel3">
+<li><a href="#_测试_19">14.1.1. 测试</a></li>
+</ul>
+</li>
+<li><a href="#_尾递归">14.2. 尾递归</a></li>
+</ul>
+</li>
+<li><a href="#_第十五章垃圾收集">15. 第十五章：垃圾收集</a>
+<ul class="sectlevel2">
+<li><a href="#_测试_20">15.1. 测试</a></li>
+</ul>
+</li>
 <li><a href="#_第十六章接下来做什么">16. 第十六章：接下来做什么？</a></li>
 </ul>
 </div>
@@ -4550,25 +4563,652 @@ Symbol not bound</code></pre>
 <div class="sect1">
 <h2 id="_第十四章延续和尾递归">14. 第十四章：延续和尾递归</h2>
 <div class="sectionbody">
+<div class="paragraph">
+<p>延续 &#8594; continuation</p>
+</div>
+<div class="paragraph">
+<p>尾递归 &#8594; tail recursion</p>
+</div>
+<div class="paragraph">
+<p>我们的eval_expr函数是递归实现的——也就是说，当在求值表达式的过程中有必要求值子表达式时，eval_expr调用自身以获得结果。</p>
+</div>
+<div class="paragraph">
+<p>这工作得很好，并且易于遵循，但是在我们的LISP环境中，递归的深度受到解释器堆栈大小的限制。传统上，LISP代码大量使用递归，因此我们希望在可用内存限制内支持此功能。</p>
+</div>
+<div class="paragraph">
+<p>以以下不太好的递归示例为例：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(define (count n)
+  (if (= n 0)
+      0
+      (+ 1 (count (- n 1)))))</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>COUNT函数将递归到深度n，并返回n的总和。诸如(COUNT 10)之类的表达式应使用我们当前的解释器计算确定，但即使(COUNT 10000)也足以导致我的计算机上的堆栈溢出。</p>
+</div>
+<div class="paragraph">
+<p>为此，我们将eval_expr重写为一个循环，并使用辅助函数来跟踪进行中的求值并返回要求值的下一个表达式。如果没有更多的表达式了，eval_expr可以将最终结果返回给调用者。</p>
+</div>
+<div class="paragraph">
+<p>当eval_expr在表达式树中工作时，我们将在一系列帧（链接在一起形成一个堆栈）中跟踪已求值的参数和待求值的参数。这与以递归方式编写的eval_expr的版本的工作方式大致相同；在这种情况下，我们将使用LISP数据结构替换机器代码堆栈，并对其进行显式操作。</p>
+</div>
+<div class="paragraph">
+<p>一旦计算了当前表达式，堆栈也可以被认为代表了计算的未来。从这个意义上讲，它被称为当前延续。</p>
+</div>
+<div class="paragraph">
+<p>由于eval_expr调用的任何函数都不能调用eval_expr（以避免递归），因此我们必须将apply和buildin_apply集成到eval_expr的函数体中。</p>
+</div>
+<div class="sect2">
+<h3 id="_实现_10">14.1. 实现</h3>
+<div class="paragraph">
+<p>一个栈帧拥有以下形式：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(parent env evaluated-op (pending-arg...) (evaluated-arg...) (body...))</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>parent</code> 是与父表达式（即正在等待当前表达式的结果的表达式）相对应的堆栈帧。 <code>env</code> 是当前环境， <code>evaluated-op</code> 是求值的运算符， <code>pending-arg&#8230;&#8203;</code> 和 <code>evaluated-arg&#8230;&#8203;</code> 分别是未决和后续求值的参数。 <code>body&#8230;&#8203;</code> 是函数体中待执行的表达式。</p>
+</div>
+<div class="paragraph">
+<p>与其写出包含很多的 <code>car()</code> 和 <code>cdr()</code> 的代码，我们不如定义一些辅助函数来操纵列表中的成员。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">Atom list_get(Atom list, int k)
+{
+    while (k--)
+        list = cdr(list);
+    return car(list);
+}
 
+void list_set(Atom list, int k, Atom value)
+{
+    while (k--)
+        list = cdr(list);
+    car(list) = value;
+}
+
+void list_reverse(Atom *list)
+{
+    Atom tail = nil;
+    while (!nilp(*list)) {
+        Atom p = cdr(*list);
+        cdr(*list) = tail;
+        tail = *list;
+        *list = p;
+    }
+    *list = tail;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>另一个函数用来创建一个新的栈帧，来对新的函数调用求值。这个新的函数有特定的parent，环境，以及一个将要求值的参数列表（tail）。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">Atom make_frame(Atom parent, Atom env, Atom tail)
+{
+    return cons(parent,
+        cons(env,
+        cons(nil, /* op */
+        cons(tail,
+        cons(nil, /* args */
+        cons(nil, /* body */
+        nil))))));
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>下面是我们新的 <code>exec_expr</code> 函数中最核心的部分。这个函数将 expr 设置到了函数体的下一个部分中，然后当我们到达函数体的最后时，将栈弹出。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int eval_do_exec(Atom *stack, Atom *expr, Atom *env)
+{
+    Atom body;
+
+    *env = list_get(*stack, 1);
+    body = list_get(*stack, 5);
+    *expr = car(body);
+    body = cdr(body);
+    if (nilp(body)) {
+        /* Finished function; pop the stack */
+        *stack = car(*stack);
+    } else {
+        list_set(*stack, 5, body);
+    }
+
+    return Error_OK;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>这个辅助函数将函数的参数绑定到一个新的环境中，前提是这些参数没有被绑定过。然后调用 <code>eval_do_exec</code> 方法获取函数体中的下一个表达式。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int eval_do_bind(Atom *stack, Atom *expr, Atom *env)
+{
+    Atom op, args, arg_names, body;
+
+    body = list_get(*stack, 5);
+    if (!nilp(body))
+        return eval_do_exec(stack, expr, env);
+
+    op = list_get(*stack, 2);
+    args = list_get(*stack, 4);
+
+    *env = env_create(car(op));
+    arg_names = car(cdr(op));
+    body = cdr(cdr(op));
+    list_set(*stack, 1, *env);
+    list_set(*stack, 5, body);
+
+    /* Bind the arguments */
+    while (!nilp(arg_names)) {
+        if (arg_names.type == AtomType_Symbol) {
+            env_set(*env, arg_names, args);
+            args = nil;
+            break;
+        }
+
+        if (nilp(args))
+            return Error_Args;
+        env_set(*env, car(arg_names), car(args));
+        arg_names = cdr(arg_names);
+        args = cdr(args);
+    }
+    if (!nilp(args))
+        return Error_Args;
+
+    list_set(*stack, 4, nil);
+
+    return eval_do_exec(stack, expr, env);
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>一旦参数都被求值以后，下一个函数将被调用。下一个函数负责要么产生一个调用内置函数的表达式，要么代理到 <code>eval_do_bind</code> 函数。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int eval_do_apply(Atom *stack, Atom *expr, Atom *env, Atom *result)
+{
+    Atom op, args;
+
+    op = list_get(*stack, 2);
+    args = list_get(*stack, 4);
+
+    if (!nilp(args)) {
+        list_reverse(&amp;args);
+        list_set(*stack, 4, args);
+    }
+
+    if (op.type == AtomType_Symbol) {
+        if (strcmp(op.value.symbol, "APPLY") == 0) {
+            /* Replace the current frame */
+            *stack = car(*stack);
+            *stack = make_frame(*stack, *env, nil);
+            op = car(args);
+            args = car(cdr(args));
+            if (!listp(args))
+                return Error_Syntax;
+
+            list_set(*stack, 2, op);
+            list_set(*stack, 4, args);
+        }
+    }
+
+    if (op.type == AtomType_Builtin) {
+        *stack = car(*stack);
+        *expr = cons(op, args);
+        return Error_OK;
+    } else if (op.type != AtomType_Closure) {
+        return Error_Type;
+    }
+
+    return eval_do_bind(stack, expr, env);
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>这个部分将会在一个表达式求值以后就调用。它负责存储结果。这个结果可能是一个运算符，一个参数，或者一个中间函数体表达式，然后获取下一个将要求值的表达式。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int eval_do_return(Atom *stack, Atom *expr, Atom *env, Atom *result)
+{
+    Atom op, args, body;
+
+    *env = list_get(*stack, 1);
+    op = list_get(*stack, 2);
+    body = list_get(*stack, 5);
+
+    if (!nilp(body)) {
+        /* Still running a procedure; ignore the result */
+        return eval_do_apply(stack, expr, env, result);
+    }
+
+    if (nilp(op)) {
+        /* Finished evaluating operator */
+        op = *result;
+        list_set(*stack, 2, op);
+
+        if (op.type == AtomType_Macro) {
+            /* Don't evaluate macro arguments */
+            args = list_get(*stack, 3);
+            *stack = make_frame(*stack, *env, nil);
+            op.type = AtomType_Closure;
+            list_set(*stack, 2, op);
+            list_set(*stack, 4, args);
+            return eval_do_bind(stack, expr, env);
+        }
+    } else if (op.type == AtomType_Symbol) {
+        /* Finished working on special form */
+        if (strcmp(op.value.symbol, "DEFINE") == 0) {
+            Atom sym = list_get(*stack, 4);
+            (void) env_set(*env, sym, *result);
+            *stack = car(*stack);
+            *expr = cons(make_sym("QUOTE"), cons(sym, nil));
+            return Error_OK;
+        } else if (strcmp(op.value.symbol, "IF") == 0) {
+            args = list_get(*stack, 3);
+            *expr = nilp(*result) ? car(cdr(args)) : car(args);
+            *stack = car(*stack);
+            return Error_OK;
+        } else {
+            goto store_arg;
+        }
+    } else if (op.type == AtomType_Macro) {
+        /* Finished evaluating macro */
+        *expr = *result;
+        *stack = car(*stack);
+        return Error_OK;
+    } else {
+    store_arg:
+        /* Store evaluated argument */
+        args = list_get(*stack, 4);
+        list_set(*stack, 4, cons(*result, args));
+    }
+
+    args = list_get(*stack, 3);
+    if (nilp(args)) {
+        /* No more arguments left to evaluate */
+        return eval_do_apply(stack, expr, env, result);
+    }
+
+    /* Evaluate next argument */
+    *expr = car(args);
+    list_set(*stack, 3, cdr(args));
+    return Error_OK;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>最后来到了我们新的 <code>eval_expr</code> 。有很多代码来构建特殊形式，剩下的就仅仅是一个循环，负责等待栈被清空。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int eval_expr(Atom expr, Atom env, Atom *result)
+{
+    Error err = Error_OK;
+    Atom stack = nil;
+
+    do {
+        if (expr.type == AtomType_Symbol) {
+            err = env_get(env, expr, result);
+        } else if (expr.type != AtomType_Pair) {
+            *result = expr;
+        } else if (!listp(expr)) {
+            return Error_Syntax;
+        } else {
+            Atom op = car(expr);
+            Atom args = cdr(expr);
+
+            if (op.type == AtomType_Symbol) {
+                /* Handle special forms */
+
+                if (strcmp(op.value.symbol, "QUOTE") == 0) {
+                    if (nilp(args) || !nilp(cdr(args)))
+                        return Error_Args;
+
+                    *result = car(args);
+                } else if (strcmp(op.value.symbol, "DEFINE") == 0) {
+                    Atom sym;
+
+                    if (nilp(args) || nilp(cdr(args)))
+                        return Error_Args;
+
+                    sym = car(args);
+                    if (sym.type == AtomType_Pair) {
+                        err = make_closure(env, cdr(sym), cdr(args), result);
+                        sym = car(sym);
+                        if (sym.type != AtomType_Symbol)
+                            return Error_Type;
+                        (void) env_set(env, sym, *result);
+                        *result = sym;
+                    } else if (sym.type == AtomType_Symbol) {
+                        if (!nilp(cdr(cdr(args))))
+                            return Error_Args;
+                        stack = make_frame(stack, env, nil);
+                        list_set(stack, 2, op);
+                        list_set(stack, 4, sym);
+                        expr = car(cdr(args));
+                        continue;
+                    } else {
+                        return Error_Type;
+                    }
+                } else if (strcmp(op.value.symbol, "LAMBDA") == 0) {
+                    if (nilp(args) || nilp(cdr(args)))
+                        return Error_Args;
+
+                    err = make_closure(env, car(args), cdr(args), result);
+                } else if (strcmp(op.value.symbol, "IF") == 0) {
+                    if (nilp(args) || nilp(cdr(args)) || nilp(cdr(cdr(args)))
+                            || !nilp(cdr(cdr(cdr(args)))))
+                        return Error_Args;
+
+                    stack = make_frame(stack, env, cdr(args));
+                    list_set(stack, 2, op);
+                    expr = car(args);
+                    continue;
+                } else if (strcmp(op.value.symbol, "DEFMACRO") == 0) {
+                    Atom name, macro;
+
+                    if (nilp(args) || nilp(cdr(args)))
+                        return Error_Args;
+
+                    if (car(args).type != AtomType_Pair)
+                        return Error_Syntax;
+
+                    name = car(car(args));
+                    if (name.type != AtomType_Symbol)
+                        return Error_Type;
+
+                    err = make_closure(env, cdr(car(args)),
+                        cdr(args), &amp;macro);
+                    if (!err) {
+                        macro.type = AtomType_Macro;
+                        *result = name;
+                        (void) env_set(env, name, macro);
+                    }
+                } else if (strcmp(op.value.symbol, "APPLY") == 0) {
+                    if (nilp(args) || nilp(cdr(args)) || !nilp(cdr(cdr(args))))
+                        return Error_Args;
+
+                    stack = make_frame(stack, env, cdr(args));
+                    list_set(stack, 2, op);
+                    expr = car(args);
+                    continue;
+                } else {
+                    goto push;
+                }
+            } else if (op.type == AtomType_Builtin) {
+                err = (*op.value.builtin)(args, result);
+            } else {
+            push:
+                /* Handle function application */
+                stack = make_frame(stack, env, args);
+                expr = op;
+                continue;
+            }
+        }
+
+        if (nilp(stack))
+            break;
+
+        if (!err)
+            err = eval_do_return(&amp;stack, &amp;expr, &amp;env, result);
+    } while (!err);
+
+    return err;
+}</code></pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_测试_19">14.1.1. 测试</h4>
+<div class="paragraph">
+<p>让我们再来试一下之前的COUNT函数。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">&gt; (count 100000)
+100000</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>万岁！现在，我们可以根据需要进行尽可能多的递归操作，而不会引起堆栈溢出。如果有大量的RAM，那么甚至应该能够完成一百万个级别的深度。</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_尾递归">14.2. 尾递归</h3>
+<div class="paragraph">
+<p>如果函数中的最后一个表达式是对另一个函数的调用，则结果可以直接返回给第一个函数的调用者。这被称为尾调用。如果被调用的函数通过一系列的尾调用导致第一个函数被调用，则我们具有尾递归。</p>
+</div>
+<div class="paragraph">
+<p>尾调用不需要保留调用者的栈帧，因此尾递归函数可以在不增加堆栈深度的情况下递归所需的多个级别。</p>
+</div>
+<div class="paragraph">
+<p>可以将count函数表示为尾递归过程，如下所示：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(define (count n a)
+  (if (= n 0)
+      a
+      (count (- n 1) (+ a 1))))
+
+(count 100000 0)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>如果使用调试器观看eval_expr，则可以确认堆栈从不超过几层。</p>
+</div>
+<div class="paragraph">
+<p>剩下要做的就是清理新求值程序创建的所有临时对象。</p>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
 <h2 id="_第十五章垃圾收集">15. 第十五章：垃圾收集</h2>
 <div class="sectionbody">
+<div class="paragraph">
+<p>垃圾收集 &#8594; Garbage collection</p>
+</div>
+<div class="paragraph">
+<p>我们将实现一个非常简单的标记——清除垃圾收集器。这不是要在实际应用程序中使用的东西，但可以满足我们的目的。</p>
+</div>
+<div class="paragraph">
+<p>请记住，我们所有的LISP数据都是通过cons函数分配的。首先，我们对其进行修改以跟踪链表中的每个分配。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">struct Allocation {
+    struct Pair pair;
+    int mark : 1;
+    struct Allocation *next;
+};
 
+struct Allocation *global_allocations = NULL;
+
+Atom cons(Atom car_val, Atom cdr_val)
+{
+    struct Allocation *a;
+    Atom p;
+
+    a = malloc(sizeof(struct Allocation));
+    a-&gt;mark = 0;
+    a-&gt;next = global_allocations;
+    global_allocations = a;
+
+    p.type = AtomType_Pair;
+    p.value.pair = &amp;a-&gt;pair;
+
+    car(p) = car_val;
+    cdr(p) = cdr_val;
+
+    return p;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>下面的函数将整个树的 <code>pair</code> 标记为 <code>in user</code> 。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">void gc_mark(Atom root)
+{
+    struct Allocation *a;
+
+    if (!(root.type == AtomType_Pair
+        || root.type == AtomType_Closure
+        || root.type == AtomType_Macro))
+        return;
+
+    a = (struct Allocation *)
+        ((char *) root.value.pair
+            - offsetof(struct Allocation, pair));
+
+    if (a-&gt;mark)
+        return;
+
+    a-&gt;mark = 1;
+
+    gc_mark(car(root));
+    gc_mark(cdr(root));
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>垃圾收集器将释放所有未标记的内容，然后清除这些标记，以备下次运行。我们也标记符号表，因为这些符号表是由静态变量引用的。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">void gc()
+{
+    struct Allocation *a, **p;
+
+    gc_mark(sym_table);
+
+    /* Free unmarked allocations */
+    p = &amp;global_allocations;
+    while (*p != NULL) {
+        a = *p;
+        if (!a-&gt;mark) {
+            *p = a-&gt;next;
+            free(a);
+        } else {
+            p = &amp;a-&gt;next;
+        }
+    }
+
+    /* Clear marks */
+    a = global_allocations;
+    while (a != NULL) {
+        a-&gt;mark = 0;
+        a = a-&gt;next;
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>为了避免在深度递归下耗尽内存，我们需要在eval_expr的每几次迭代中调用一次垃圾收集器。该时间间隔将大致确定在垃圾回收之间进行多少内存的分配。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int eval_expr(Atom expr, Atom env, Atom *result)
+{
+    static int count = 0;
+    Error err = Error_OK;
+    Atom stack = nil;
+
+    do {
+        if (++count == 100000) {
+            gc_mark(expr);
+            gc_mark(env);
+            gc_mark(stack);
+            gc();
+            count = 0;
+        }
+
+    .
+    .
+    .
+}</code></pre>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_测试_20">15.1. 测试</h3>
+<div class="paragraph">
+<p>来看一下之前写的COUNT的例子：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">&gt; (define (count n) (if (= n 0) t (count (- n 1))))
+COUNT
+&gt; (count 1000000)
+T</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>瞧！操作完成而不会耗尽我们的所有RAM。</p>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
 <h2 id="_第十六章接下来做什么">16. 第十六章：接下来做什么？</h2>
 <div class="sectionbody">
-
+<div class="paragraph">
+<p>该项目的目的是演示LISP的轻松实现。优化或不经意地实现库函数没有多大意义——这项工作已经在其他项目中完成。</p>
+</div>
+<div class="paragraph">
+<p>以下是一些可能有趣的扩展：</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>使用 <code>call/cc</code> 关键字将延续暴露出来</p>
+</li>
+<li>
+<p>其他数值类型 (float, rational, bignum, complex)</p>
+</li>
+<li>
+<p>字符串、向量和布尔类型</p>
+</li>
+<li>
+<p>I/O支持</p>
+</li>
+<li>
+<p>调用系统库</p>
+</li>
+<li>
+<p>即时编译(JIT)</p>
+</li>
+<li>
+<p>Slab allocation</p>
+</li>
+<li>
+<p>可配置GC</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>现在是时候停止在C语言中搞乱了，而是在LISP中构建东西了！</p>
+</div>
 </div>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-05-26 17:37:52 +0800
+Last updated 2021-05-26 19:02:20 +0800
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
