@@ -2727,6 +2727,142 @@ ADD
 
 == 第十一章：宏
 
+宏允许我们在运行时创建新的特殊形式。与函数不同，不会对宏的参数进行求值。然后，对宏的函数体的求值结果进行求值。
+
+注意：这些（基本上是）常见的LISP宏。Scheme具有不同的宏系统，该系统避免了由宏引入的标识符的问题，但更为复杂。
+
+我们将使用以下语法定义宏：
+
+[source,scheme]
+----
+(DEFMACRO (name arg...) body...)
+----
+
+这有点像我们定义函数时的DEFINE语法，但和Common LISP中的形式有点区别。
+
+=== 例子
+
+我们先来定义一个宏IGNORE
+
+[source,scheme]
+----
+(DEFMACRO (IGNORE X)
+  (CONS 'QUOTE
+    (CONS X NIL)))
+----
+
+如果我们对以下表达式进行求值：
+
+[source,scheme]
+----
+(IGNORE FOO)
+----
+
+由于FOO没有绑定存在，所以IGNORE的宏代码将会把参数X绑定到未求值的符号FOO。那么对嵌套的CONS表达式在这个环境中求值的结果如下：
+
+[source,scheme]
+----
+(QUOTE . (FOO . NIL))
+----
+
+当然上面的表达式等价于
+
+[source,scheme]
+----
+(QUOTE FOO)
+----
+
+最终，对上面的表达式进行求值（也就是对宏的代码进行求值的结果）就是：
+
+[source,scheme]
+----
+FOO
+----
+
+=== 实现
+
+我们将会定义一个新的 atom 类型：
+
+[source,c]
+----
+AtomType_Macro
+----
+
+上面类型的值和AtomType_Closure是一样的，我们只需要告诉eval_expr如何对我们新的宏类型进行求值就好了。
+
+[source,c]
+----
+int eval_expr(Atom expr, Atom env, Atom *result)
+{
+    .
+    .
+    .
+    if (op.type == AtomType_Symbol) {
+        if (strcmp(op.value.symbol, "QUOTE") == 0) {
+        .
+        .
+        .
+        } else if (strcmp(op.value.symbol, "DEFMACRO") == 0) {
+            Atom name, macro;
+            Error err;
+
+            if (nilp(args) || nilp(cdr(args)))
+                return Error_Args;
+
+            if (car(args).type != AtomType_Pair)
+                return Error_Syntax;
+
+            name = car(car(args));
+            if (name.type != AtomType_Symbol)
+                return Error_Type;
+
+            err = make_closure(env, cdr(car(args)),
+                cdr(args), &macro);
+            if (err)
+                return err;
+
+            macro.type = AtomType_Macro;
+            *result = name;
+            return env_set(env, name, macro);
+        }
+    }
+
+    /* Evaluate operator */
+    .
+    .
+    .
+
+    /* Is it a macro? */
+    if (op.type == AtomType_Macro) {
+        Atom expansion;
+        op.type = AtomType_Closure;
+        err = apply(op, args, &expansion);
+        if (err)
+            return err;
+        return eval_expr(expansion, env, result);
+    }
+
+    /* Evaulate arguments */
+    .
+    .
+    .
+}
+----
+
+=== 测试
+
+[source,text]
+----
+> (defmacro (ignore x) (cons 'quote (cons x nil)))
+IGNORE
+> (ignore foo)
+FOO
+> foo
+Symbol not bound
+----
+
+我们在后面将使用宏来定义一些新的特殊形式。
+
 == 第十二章：库
 
 == 第十三章：准引用

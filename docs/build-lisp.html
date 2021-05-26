@@ -535,7 +535,13 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#_测试_12">10.2. 测试</a></li>
 </ul>
 </li>
-<li><a href="#_第十一章宏">11. 第十一章：宏</a></li>
+<li><a href="#_第十一章宏">11. 第十一章：宏</a>
+<ul class="sectlevel2">
+<li><a href="#_例子">11.1. 例子</a></li>
+<li><a href="#_实现_8">11.2. 实现</a></li>
+<li><a href="#_测试_13">11.3. 测试</a></li>
+</ul>
+</li>
 <li><a href="#_第十二章库">12. 第十二章：库</a></li>
 <li><a href="#_第十三章准引用">13. 第十三章：准引用</a></li>
 <li><a href="#_第十四章延续和尾递归">14. 第十四章：延续和尾递归</a></li>
@@ -3723,7 +3729,157 @@ ADD
 <div class="sect1">
 <h2 id="_第十一章宏">11. 第十一章：宏</h2>
 <div class="sectionbody">
+<div class="paragraph">
+<p>宏允许我们在运行时创建新的特殊形式。与函数不同，不会对宏的参数进行求值。然后，对宏的函数体的求值结果进行求值。</p>
+</div>
+<div class="paragraph">
+<p>注意：这些（基本上是）常见的LISP宏。Scheme具有不同的宏系统，该系统避免了由宏引入的标识符的问题，但更为复杂。</p>
+</div>
+<div class="paragraph">
+<p>我们将使用以下语法定义宏：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(DEFMACRO (name arg...) body...)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>这有点像我们定义函数时的DEFINE语法，但和Common LISP中的形式有点区别。</p>
+</div>
+<div class="sect2">
+<h3 id="_例子">11.1. 例子</h3>
+<div class="paragraph">
+<p>我们先来定义一个宏IGNORE</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(DEFMACRO (IGNORE X)
+  (CONS 'QUOTE
+    (CONS X NIL)))</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>如果我们对以下表达式进行求值：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(IGNORE FOO)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>由于FOO没有绑定存在，所以IGNORE的宏代码将会把参数X绑定到未求值的符号FOO。那么对嵌套的CONS表达式在这个环境中求值的结果如下：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(QUOTE . (FOO . NIL))</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>当然上面的表达式等价于</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(QUOTE FOO)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>最终，对上面的表达式进行求值（也就是对宏的代码进行求值的结果）就是：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">FOO</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_实现_8">11.2. 实现</h3>
+<div class="paragraph">
+<p>我们将会定义一个新的 atom 类型：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">AtomType_Macro</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>上面类型的值和AtomType_Closure是一样的，我们只需要告诉eval_expr如何对我们新的宏类型进行求值就好了。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int eval_expr(Atom expr, Atom env, Atom *result)
+{
+    .
+    .
+    .
+    if (op.type == AtomType_Symbol) {
+        if (strcmp(op.value.symbol, "QUOTE") == 0) {
+        .
+        .
+        .
+        } else if (strcmp(op.value.symbol, "DEFMACRO") == 0) {
+            Atom name, macro;
+            Error err;
 
+            if (nilp(args) || nilp(cdr(args)))
+                return Error_Args;
+
+            if (car(args).type != AtomType_Pair)
+                return Error_Syntax;
+
+            name = car(car(args));
+            if (name.type != AtomType_Symbol)
+                return Error_Type;
+
+            err = make_closure(env, cdr(car(args)),
+                cdr(args), &amp;macro);
+            if (err)
+                return err;
+
+            macro.type = AtomType_Macro;
+            *result = name;
+            return env_set(env, name, macro);
+        }
+    }
+
+    /* Evaluate operator */
+    .
+    .
+    .
+
+    /* Is it a macro? */
+    if (op.type == AtomType_Macro) {
+        Atom expansion;
+        op.type = AtomType_Closure;
+        err = apply(op, args, &amp;expansion);
+        if (err)
+            return err;
+        return eval_expr(expansion, env, result);
+    }
+
+    /* Evaulate arguments */
+    .
+    .
+    .
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_测试_13">11.3. 测试</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">&gt; (defmacro (ignore x) (cons 'quote (cons x nil)))
+IGNORE
+&gt; (ignore foo)
+FOO
+&gt; foo
+Symbol not bound</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>我们在后面将使用宏来定义一些新的特殊形式。</p>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -3759,7 +3915,7 @@ ADD
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-05-26 14:29:30 +0800
+Last updated 2021-05-26 15:03:18 +0800
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
