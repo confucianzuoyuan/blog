@@ -2865,6 +2865,291 @@ Symbol not bound
 
 == 第十二章：库
 
+现在，我们将为LISP系统创建一个有用的函数的小型库。让我们利用以下事实：我们可以利用较低级别的功能在LISP本身中实现许多LISP标准库，而不是为每个构建新的内建函数。
+
+首先，我们需要一个函数来从磁盘读取库定义。
+
+[source,c]
+----
+char *slurp(const char *path)
+{
+    FILE *file;
+    char *buf;
+    long len;
+
+    file = fopen(path, "r");
+    if (!file)
+        return NULL;
+    fseek(file, 0, SEEK_END);
+    len = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    buf = malloc(len + 1);
+    if (!buf)
+        return NULL;
+
+    fread(buf, 1, len, file);
+    buf[len] = 0;
+    fclose(file);
+
+    return buf;
+}
+----
+
+还有一个类似于我们的REPL的例程，用于处理这些定义。因为我们一次性读取了整个文件，所以将定义拆分成几行是没有问题的。
+
+[source,c]
+----
+void load_file(Atom env, const char *path)
+{
+    char *text;
+
+    printf("Reading %s...\n", path);
+    text = slurp(path);
+    if (text) {
+        const char *p = text;
+        Atom expr;
+        while (read_expr(p, &p, &expr) == Error_OK) {
+            Atom result;
+            Error err = eval_expr(expr, env, &result);
+            if (err) {
+                printf("Error in expression:\n\t");
+                print_expr(expr);
+                putchar('\n');
+            } else {
+                print_expr(result);
+                putchar('\n');
+            }
+        }
+        free(text);
+    }
+}
+----
+
+设置完内置函数后，最后在库中读取。
+
+[source,c]
+----
+int main(int argc, char **argv)
+{
+    .
+     .
+    .
+
+    /* Set up the initial environment */
+    .
+    .
+    .
+
+    load_file(env, "library.lisp");
+
+    /* Main loop */
+    .
+    .
+    .
+}
+----
+
+=== 测试
+
+使用下面的定义创建一个 `library.lisp` 文件：
+
+[source,scheme]
+----
+(define (abs x) (if (< x 0) (- x) x))
+----
+
+运行解释器
+
+[source,text]
+----
+Reading library.lisp...
+ABS
+> (abs -2)
+2
+----
+
+`ABS` 函数现在在每一个lisp代码中都可以使用了，不需要每次都定义一遍。
+
+=== fold
+
+`foldl` 和 `foldr` 允许我们轻松的创建聚合列表的函数。
+
+[source,scheme]
+----
+(define (foldl proc init list)
+  (if list
+      (foldl proc
+             (proc init (car list))
+             (cdr list))
+      init))
+
+(define (foldr proc init list)
+  (if list
+      (proc (car list)
+            (foldr proc init (cdr list)))
+      init))
+----
+
+看一下怎么用
+
+[source,scheme]
+----
+(define (list . items)
+  (foldr cons nil items))
+
+(define (reverse list)
+  (foldl (lambda (a x) (cons x a)) nil list))
+----
+
+==== 测试
+
+[source,text]
+----
+> (list (+ 3 5) 'foo)
+(8 FOO)
+> (reverse '(1 2 3))
+(3 2 1)
+----
+
+这比我们用C实现成内置函数要容易多了吧。
+
+=== 更多内置函数
+
+有一些原始函数需要访问系统的内部API。
+
+==== apply
+
+apply 函数
+
+[source,scheme]
+----
+(APPLY fn arg-list)
+----
+
+将fn中的参数列表绑定到arg-list，然后执行fn的函数体。
+
+[source,c]
+----
+int builtin_apply(Atom args, Atom *result)
+{
+    Atom fn;
+
+    if (nilp(args) || nilp(cdr(args)) || !nilp(cdr(cdr(args))))
+        return Error_Args;
+
+    fn = car(args);
+    args = car(cdr(args));
+
+    if (!listp(args))
+        return Error_Syntax;
+
+    return apply(fn, args, result);
+}
+----
+
+==== eq?
+
+`eq?` 测试两个原子类型是不是同一个对象。
+
+[source,c]
+----
+int builtin_eq(Atom args, Atom *result)
+{
+    Atom a, b;
+    int eq;
+
+    if (nilp(args) || nilp(cdr(args)) || !nilp(cdr(cdr(args))))
+        return Error_Args;
+
+    a = car(args);
+    b = car(cdr(args));
+
+    if (a.type == b.type) {
+        switch (a.type) {
+        case AtomType_Nil:
+            eq = 1;
+            break;
+        case AtomType_Pair:
+        case AtomType_Closure:
+        case AtomType_Macro:
+            eq = (a.value.pair == b.value.pair);
+            break;
+        case AtomType_Symbol:
+            eq = (a.value.symbol == b.value.symbol);
+            break;
+        case AtomType_Integer:
+            eq = (a.value.integer == b.value.integer);
+            break;
+        case AtomType_Builtin:
+            eq = (a.value.builtin == b.value.builtin);
+            break;
+        }
+    } else {
+        eq = 0;
+    }
+
+    *result = eq ? make_sym("T") : nil;
+    return Error_OK;
+}
+----
+
+==== pair?
+
+测试一个原子类型是不是 `pair` 。
+
+[source,c]
+----
+int builtin_pairp(Atom args, Atom *result)
+{
+    if (nilp(args) || !nilp(cdr(args)))
+        return Error_Args;
+
+    *result = (car(args).type == AtomType_Pair) ? make_sym("T") : nil;
+    return Error_OK;
+}
+----
+
+别忘了将内置函数绑定到初始环境中。
+
+[source,c]
+----
+env_set(env, make_sym("APPLY"), make_builtin(builtin_apply));
+env_set(env, make_sym("EQ?"), make_builtin(builtin_eq));
+env_set(env, make_sym("PAIR?"), make_builtin(builtin_pairp));
+----
+
+==== map
+
+我们使用 `foldr` 和 `apply` 来实现另一个重要的函数 `map` ，也就是将列表中的每一个元素都一一对应的转换成另一种元素。
+
+[source,scheme]
+----
+(define (unary-map proc list)
+  (foldr (lambda (x rest) (cons (proc x) rest))
+         nil
+         list))
+
+(define (map proc . arg-lists)
+  (if (car arg-lists)
+      (cons (apply proc (unary-map car arg-lists))
+            (apply map (cons proc
+                             (unary-map cdr arg-lists))))
+      nil))
+----
+
+注意还有其他实现方式。
+
+这样使用map：
+
+[source,scheme]
+----
+> (map + '(1 2 3) '(4 5 6))
+(5 7 9)
+----
+
+结果列表中包含的结果是：(+ 1 4)，(+ 2 5)和(+ 3 6)的求值结果。
+
 == 第十三章：准引用
 
 == 第十四章：延续和尾递归

@@ -542,7 +542,24 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#_测试_13">11.3. 测试</a></li>
 </ul>
 </li>
-<li><a href="#_第十二章库">12. 第十二章：库</a></li>
+<li><a href="#_第十二章库">12. 第十二章：库</a>
+<ul class="sectlevel2">
+<li><a href="#_测试_14">12.1. 测试</a></li>
+<li><a href="#_fold">12.2. fold</a>
+<ul class="sectlevel3">
+<li><a href="#_测试_15">12.2.1. 测试</a></li>
+</ul>
+</li>
+<li><a href="#_更多内置函数">12.3. 更多内置函数</a>
+<ul class="sectlevel3">
+<li><a href="#_apply">12.3.1. apply</a></li>
+<li><a href="#_eq">12.3.2. eq?</a></li>
+<li><a href="#_pair">12.3.3. pair?</a></li>
+<li><a href="#_map">12.3.4. map</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li><a href="#_第十三章准引用">13. 第十三章：准引用</a></li>
 <li><a href="#_第十四章延续和尾递归">14. 第十四章：延续和尾递归</a></li>
 <li><a href="#_第十五章垃圾收集">15. 第十五章：垃圾收集</a></li>
@@ -3885,7 +3902,319 @@ Symbol not bound</code></pre>
 <div class="sect1">
 <h2 id="_第十二章库">12. 第十二章：库</h2>
 <div class="sectionbody">
+<div class="paragraph">
+<p>现在，我们将为LISP系统创建一个有用的函数的小型库。让我们利用以下事实：我们可以利用较低级别的功能在LISP本身中实现许多LISP标准库，而不是为每个构建新的内建函数。</p>
+</div>
+<div class="paragraph">
+<p>首先，我们需要一个函数来从磁盘读取库定义。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">char *slurp(const char *path)
+{
+    FILE *file;
+    char *buf;
+    long len;
 
+    file = fopen(path, "r");
+    if (!file)
+        return NULL;
+    fseek(file, 0, SEEK_END);
+    len = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    buf = malloc(len + 1);
+    if (!buf)
+        return NULL;
+
+    fread(buf, 1, len, file);
+    buf[len] = 0;
+    fclose(file);
+
+    return buf;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>还有一个类似于我们的REPL的例程，用于处理这些定义。因为我们一次性读取了整个文件，所以将定义拆分成几行是没有问题的。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">void load_file(Atom env, const char *path)
+{
+    char *text;
+
+    printf("Reading %s...\n", path);
+    text = slurp(path);
+    if (text) {
+        const char *p = text;
+        Atom expr;
+        while (read_expr(p, &amp;p, &amp;expr) == Error_OK) {
+            Atom result;
+            Error err = eval_expr(expr, env, &amp;result);
+            if (err) {
+                printf("Error in expression:\n\t");
+                print_expr(expr);
+                putchar('\n');
+            } else {
+                print_expr(result);
+                putchar('\n');
+            }
+        }
+        free(text);
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>设置完内置函数后，最后在库中读取。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int main(int argc, char **argv)
+{
+    .
+     .
+    .
+
+    /* Set up the initial environment */
+    .
+    .
+    .
+
+    load_file(env, "library.lisp");
+
+    /* Main loop */
+    .
+    .
+    .
+}</code></pre>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_测试_14">12.1. 测试</h3>
+<div class="paragraph">
+<p>使用下面的定义创建一个 <code>library.lisp</code> 文件：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(define (abs x) (if (&lt; x 0) (- x) x))</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>运行解释器</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">Reading library.lisp...
+ABS
+&gt; (abs -2)
+2</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>ABS</code> 函数现在在每一个lisp代码中都可以使用了，不需要每次都定义一遍。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_fold">12.2. fold</h3>
+<div class="paragraph">
+<p><code>foldl</code> 和 <code>foldr</code> 允许我们轻松的创建聚合列表的函数。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(define (foldl proc init list)
+  (if list
+      (foldl proc
+             (proc init (car list))
+             (cdr list))
+      init))
+
+(define (foldr proc init list)
+  (if list
+      (proc (car list)
+            (foldr proc init (cdr list)))
+      init))</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>看一下怎么用</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(define (list . items)
+  (foldr cons nil items))
+
+(define (reverse list)
+  (foldl (lambda (a x) (cons x a)) nil list))</code></pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_测试_15">12.2.1. 测试</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">&gt; (list (+ 3 5) 'foo)
+(8 FOO)
+&gt; (reverse '(1 2 3))
+(3 2 1)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>这比我们用C实现成内置函数要容易多了吧。</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_更多内置函数">12.3. 更多内置函数</h3>
+<div class="paragraph">
+<p>有一些原始函数需要访问系统的内部API。</p>
+</div>
+<div class="sect3">
+<h4 id="_apply">12.3.1. apply</h4>
+<div class="paragraph">
+<p>apply 函数</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(APPLY fn arg-list)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>将fn中的参数列表绑定到arg-list，然后执行fn的函数体。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int builtin_apply(Atom args, Atom *result)
+{
+    Atom fn;
+
+    if (nilp(args) || nilp(cdr(args)) || !nilp(cdr(cdr(args))))
+        return Error_Args;
+
+    fn = car(args);
+    args = car(cdr(args));
+
+    if (!listp(args))
+        return Error_Syntax;
+
+    return apply(fn, args, result);
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_eq">12.3.2. eq?</h4>
+<div class="paragraph">
+<p><code>eq?</code> 测试两个原子类型是不是同一个对象。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int builtin_eq(Atom args, Atom *result)
+{
+    Atom a, b;
+    int eq;
+
+    if (nilp(args) || nilp(cdr(args)) || !nilp(cdr(cdr(args))))
+        return Error_Args;
+
+    a = car(args);
+    b = car(cdr(args));
+
+    if (a.type == b.type) {
+        switch (a.type) {
+        case AtomType_Nil:
+            eq = 1;
+            break;
+        case AtomType_Pair:
+        case AtomType_Closure:
+        case AtomType_Macro:
+            eq = (a.value.pair == b.value.pair);
+            break;
+        case AtomType_Symbol:
+            eq = (a.value.symbol == b.value.symbol);
+            break;
+        case AtomType_Integer:
+            eq = (a.value.integer == b.value.integer);
+            break;
+        case AtomType_Builtin:
+            eq = (a.value.builtin == b.value.builtin);
+            break;
+        }
+    } else {
+        eq = 0;
+    }
+
+    *result = eq ? make_sym("T") : nil;
+    return Error_OK;
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_pair">12.3.3. pair?</h4>
+<div class="paragraph">
+<p>测试一个原子类型是不是 <code>pair</code> 。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int builtin_pairp(Atom args, Atom *result)
+{
+    if (nilp(args) || !nilp(cdr(args)))
+        return Error_Args;
+
+    *result = (car(args).type == AtomType_Pair) ? make_sym("T") : nil;
+    return Error_OK;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>别忘了将内置函数绑定到初始环境中。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">env_set(env, make_sym("APPLY"), make_builtin(builtin_apply));
+env_set(env, make_sym("EQ?"), make_builtin(builtin_eq));
+env_set(env, make_sym("PAIR?"), make_builtin(builtin_pairp));</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_map">12.3.4. map</h4>
+<div class="paragraph">
+<p>我们使用 <code>foldr</code> 和 <code>apply</code> 来实现另一个重要的函数 <code>map</code> ，也就是将列表中的每一个元素都一一对应的转换成另一种元素。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(define (unary-map proc list)
+  (foldr (lambda (x rest) (cons (proc x) rest))
+         nil
+         list))
+
+(define (map proc . arg-lists)
+  (if (car arg-lists)
+      (cons (apply proc (unary-map car arg-lists))
+            (apply map (cons proc
+                             (unary-map cdr arg-lists))))
+      nil))</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>注意还有其他实现方式。</p>
+</div>
+<div class="paragraph">
+<p>这样使用map：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">&gt; (map + '(1 2 3) '(4 5 6))
+(5 7 9)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>结果列表中包含的结果是：(+ 1 4)，(+ 2 5)和(+ 3 6)的求值结果。</p>
+</div>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -3915,7 +4244,7 @@ Symbol not bound</code></pre>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-05-26 15:03:18 +0800
+Last updated 2021-05-26 16:22:08 +0800
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
