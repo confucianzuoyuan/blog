@@ -3150,7 +3150,260 @@ env_set(env, make_sym("PAIR?"), make_builtin(builtin_pairp));
 
 结果列表中包含的结果是：(+ 1 4)，(+ 2 5)和(+ 3 6)的求值结果。
 
-== 第十三章：准引用
+== 第十三章：准引用(QUASIQUOTE)
+
+QUASIQUOTE是QUOTE特殊形式的扩展，可以方便地编写宏。
+
+对于符号和其他简单数据，QUASIQUOTE的行为类似于QUOTE，返回未经求值的数据结构。列表也将返回而不进行求值，但有两个例外。如果列表（或子列表）的元素具有 `(UNQUOTE expr)` 形式，则将求值expr，并将结果插入到列表中。 `(UNQUOTE-SPLICING expr)` 相似，但是求值expr的结果必须是一个列表，其项被拼接到父列表中。
+
+=== 例子
+
+[source,scheme]
+----
+(QUASIQUOTE (+ 1 (UNQUOTE (+ 2 3))))
+----
+
+将会求值为：
+
+[source,scheme]
+----
+(+ 1 5)
+----
+
+If we define L to be the list (3 4 5) then
+
+如果我们定义L为列表(3 4 5)，那么
+
+[source,scheme]
+----
+(QUASIQUOTE (1 2 (UNQUOTE-SPLICING L)))
+----
+
+将会求值为：
+
+[source,scheme]
+----
+(1 2 3 4 5)
+----
+
+=== 语法糖
+
+就像QUOTE一样，我们可以定义下列缩写形式：
+
+|===
+| Abbreviation | Equivalent to
+| `expr | (QUASIQUOTE expr)
+| ,expr | (UNQUOTE expr)
+| ,@expr | (UNQUOTE-SPLICING expr)
+|===
+
+将上面的例子用语法糖重写一下
+
+[source,scheme]
+----
+`(+ 1 ,(+ 2 3))
+----
+
+以及
+
+[source,scheme]
+----
+`(1 2 ,@L)
+----
+
+=== 实现
+
+我们将扩展词法分析器来理解上面那些特殊的 `token` 。
+
+[source,c]
+----
+int lex(const char *str, const char **start, const char **end)
+{
+    const char *ws = " \t\n";
+    const char *delim = "() \t\n";
+    const char *prefix = "()\'`";
+
+    str += strspn(str, ws);
+
+    if (str[0] == '\0') {
+        *start = *end = NULL;
+        return Error_Syntax;
+    }
+
+    *start = str;
+
+    if (strchr(prefix, str[0]) != NULL)
+        *end = str + 1;
+    else if (str[0] == ',')
+        *end = str + (str[1] == '@' ? 2 : 1);
+    else
+        *end = str + strcspn(str, delim);
+
+    return Error_OK;
+}
+----
+
+read_expr 需要扩展上面那些缩写形式，像对 QUOTE 那么扩展
+
+[source,c]
+----
+int read_expr(const char *input, const char **end, Atom *result)
+{
+    .
+    .
+    .
+    if (token[0] == '(') {
+    .
+    .
+    .
+    } else if (token[0] == '`') {
+        *result = cons(make_sym("QUASIQUOTE"), cons(nil, nil));
+        return read_expr(*end, end, &car(cdr(*result)));
+    } else if (token[0] == ',') {
+        *result = cons(make_sym(
+            token[1] == '@' ? "UNQUOTE-SPLICING" : "UNQUOTE"),
+            cons(nil, nil));
+        return read_expr(*end, end, &car(cdr(*result)));
+    } else {
+        .
+        .
+        .
+    }
+}
+----
+
+QUASIQUOTE运算符可以定义为一个宏。我们先来定义一些辅助函数。
+
+[source,scheme]
+----
+(define (append a b) (foldr cons b a))
+
+(define (caar x) (car (car x)))
+
+(define (cadr x) (car (cdr x)))
+----
+
+(append a b) 将列表a和b拼接在一起。宏如下定义：
+
+[source,scheme]
+----
+(defmacro (quasiquote x)
+  (if (pair? x)
+      (if (eq? (car x) 'unquote)
+          (cadr x)
+          (if (eq? (caar x) 'unquote-splicing)
+              (list 'append
+                    (cadr (car x))
+                    (list 'quasiquote (cdr x)))
+              (list 'cons
+                    (list 'quasiquote (car x))
+                    (list 'quasiquote (cdr x)))))
+      (list 'quote x)))
+----
+
+上面的宏定义有一些难理解，因为结果表达式也是用LIST构建的，并且也调用了其他的QUASIQUOTE。
+
+Quasiquotation允许我们在写宏定义的函数体时看起来像这个宏返回的表达式一样。例如在十一章中写过的IGNORE宏
+
+[source,scheme]
+----
+(DEFMACRO (IGNORE X)
+  (CONS 'QUOTE (CONS X NIL)))
+----
+
+可以改写成
+
+[source,scheme]
+----
+(DEFMACRO (IGNORE X)
+  `(QUOTE ,X))
+----
+
+这样IGNORE看起来就好理解了。
+
+==== 测试
+
+[source,text]
+----
+> `(+ 1 ,(+ 2 3))
+(+ 1 5)
+> (define l '(3 4 5))
+L
+> `(1 2 ,@l)
+(1 2 3 4 5)
+----
+
+=== let
+
+我们现在使用QUASITUOTE来定义一种新的特殊形式：
+
+[source,scheme]
+----
+(LET ((sym1 expr1)
+      (sym2 expr2)
+      ...)
+  body...)
+----
+
+LET先对expr1求值，并绑定到sym1,再对expr2求值，并绑定到sym2,等等。然后将body的求值结果返回。定义很简单：
+
+[source,scheme]
+----
+(defmacro (let defs . body)
+  `((lambda ,(map car defs) ,@body)
+    ,@(map cadr defs)))
+----
+
+==== 例子
+
+当我们对下面的形式进行求值时：
+
+[source,scheme]
+----
+(LET ((X 3) (Y 5)) (+ X Y))
+----
+
+它将会被LET宏转换成：
+
+[source,scheme]
+----
+((LAMBDA (X Y) (+ X Y)) 3 5)
+----
+
+==== 测试
+
+[source,text]
+----
+> (let ((x 3) (y 5)) (+ x y))
+8
+> x
+Symbol not bound
+----
+
+LET表达式可以让我们定义临时变量。
+
+=== 一个小技巧
+
+我们可以使用LET来扩展内置运算符 `+` ，使得可以对任意数量的参数进行相加。
+
+[source,scheme]
+----
+(define +
+  (let ((old+ +))
+    (lambda xs (foldl old+ 0 xs))))
+----
+
+将上面的定义和在第十章中定义的ADD对比一下。
+
+==== 测试
+
+[source,text]
+----
+> (+ 1 2 3 4)
+10
+----
+
+我们甚至不需要触碰builtin_add函数或者重新编译解释器。
 
 == 第十四章：延续和尾递归
 

@@ -560,7 +560,28 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 </ul>
 </li>
-<li><a href="#_第十三章准引用">13. 第十三章：准引用</a></li>
+<li><a href="#_第十三章准引用quasiquote">13. 第十三章：准引用(QUASIQUOTE)</a>
+<ul class="sectlevel2">
+<li><a href="#_例子_2">13.1. 例子</a></li>
+<li><a href="#_语法糖">13.2. 语法糖</a></li>
+<li><a href="#_实现_9">13.3. 实现</a>
+<ul class="sectlevel3">
+<li><a href="#_测试_16">13.3.1. 测试</a></li>
+</ul>
+</li>
+<li><a href="#_let">13.4. let</a>
+<ul class="sectlevel3">
+<li><a href="#_例子_3">13.4.1. 例子</a></li>
+<li><a href="#_测试_17">13.4.2. 测试</a></li>
+</ul>
+</li>
+<li><a href="#_一个小技巧">13.5. 一个小技巧</a>
+<ul class="sectlevel3">
+<li><a href="#_测试_18">13.5.1. 测试</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li><a href="#_第十四章延续和尾递归">14. 第十四章：延续和尾递归</a></li>
 <li><a href="#_第十五章垃圾收集">15. 第十五章：垃圾收集</a></li>
 <li><a href="#_第十六章接下来做什么">16. 第十六章：接下来做什么？</a></li>
@@ -4218,9 +4239,312 @@ env_set(env, make_sym("PAIR?"), make_builtin(builtin_pairp));</code></pre>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_第十三章准引用">13. 第十三章：准引用</h2>
+<h2 id="_第十三章准引用quasiquote">13. 第十三章：准引用(QUASIQUOTE)</h2>
 <div class="sectionbody">
+<div class="paragraph">
+<p>QUASIQUOTE是QUOTE特殊形式的扩展，可以方便地编写宏。</p>
+</div>
+<div class="paragraph">
+<p>对于符号和其他简单数据，QUASIQUOTE的行为类似于QUOTE，返回未经求值的数据结构。列表也将返回而不进行求值，但有两个例外。如果列表（或子列表）的元素具有 <code>(UNQUOTE expr)</code> 形式，则将求值expr，并将结果插入到列表中。 <code>(UNQUOTE-SPLICING expr)</code> 相似，但是求值expr的结果必须是一个列表，其项被拼接到父列表中。</p>
+</div>
+<div class="sect2">
+<h3 id="_例子_2">13.1. 例子</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(QUASIQUOTE (+ 1 (UNQUOTE (+ 2 3))))</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>将会求值为：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(+ 1 5)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If we define L to be the list (3 4 5) then</p>
+</div>
+<div class="paragraph">
+<p>如果我们定义L为列表(3 4 5)，那么</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(QUASIQUOTE (1 2 (UNQUOTE-SPLICING L)))</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>将会求值为：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(1 2 3 4 5)</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_语法糖">13.2. 语法糖</h3>
+<div class="paragraph">
+<p>就像QUOTE一样，我们可以定义下列缩写形式：</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Abbreviation</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Equivalent to</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">`expr</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(QUASIQUOTE expr)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">,expr</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(UNQUOTE expr)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">,@expr</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(UNQUOTE-SPLICING expr)</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>将上面的例子用语法糖重写一下</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">`(+ 1 ,(+ 2 3))</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>以及</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">`(1 2 ,@L)</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_实现_9">13.3. 实现</h3>
+<div class="paragraph">
+<p>我们将扩展词法分析器来理解上面那些特殊的 <code>token</code> 。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int lex(const char *str, const char **start, const char **end)
+{
+    const char *ws = " \t\n";
+    const char *delim = "() \t\n";
+    const char *prefix = "()\'`";
 
+    str += strspn(str, ws);
+
+    if (str[0] == '\0') {
+        *start = *end = NULL;
+        return Error_Syntax;
+    }
+
+    *start = str;
+
+    if (strchr(prefix, str[0]) != NULL)
+        *end = str + 1;
+    else if (str[0] == ',')
+        *end = str + (str[1] == '@' ? 2 : 1);
+    else
+        *end = str + strcspn(str, delim);
+
+    return Error_OK;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>read_expr 需要扩展上面那些缩写形式，像对 QUOTE 那么扩展</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int read_expr(const char *input, const char **end, Atom *result)
+{
+    .
+    .
+    .
+    if (token[0] == '(') {
+    .
+    .
+    .
+    } else if (token[0] == '`') {
+        *result = cons(make_sym("QUASIQUOTE"), cons(nil, nil));
+        return read_expr(*end, end, &amp;car(cdr(*result)));
+    } else if (token[0] == ',') {
+        *result = cons(make_sym(
+            token[1] == '@' ? "UNQUOTE-SPLICING" : "UNQUOTE"),
+            cons(nil, nil));
+        return read_expr(*end, end, &amp;car(cdr(*result)));
+    } else {
+        .
+        .
+        .
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>QUASIQUOTE运算符可以定义为一个宏。我们先来定义一些辅助函数。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(define (append a b) (foldr cons b a))
+
+(define (caar x) (car (car x)))
+
+(define (cadr x) (car (cdr x)))</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>(append a b) 将列表a和b拼接在一起。宏如下定义：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(defmacro (quasiquote x)
+  (if (pair? x)
+      (if (eq? (car x) 'unquote)
+          (cadr x)
+          (if (eq? (caar x) 'unquote-splicing)
+              (list 'append
+                    (cadr (car x))
+                    (list 'quasiquote (cdr x)))
+              (list 'cons
+                    (list 'quasiquote (car x))
+                    (list 'quasiquote (cdr x)))))
+      (list 'quote x)))</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>上面的宏定义有一些难理解，因为结果表达式也是用LIST构建的，并且也调用了其他的QUASIQUOTE。</p>
+</div>
+<div class="paragraph">
+<p>Quasiquotation允许我们在写宏定义的函数体时看起来像这个宏返回的表达式一样。例如在十一章中写过的IGNORE宏</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(DEFMACRO (IGNORE X)
+  (CONS 'QUOTE (CONS X NIL)))</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>可以改写成</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(DEFMACRO (IGNORE X)
+  `(QUOTE ,X))</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>这样IGNORE看起来就好理解了。</p>
+</div>
+<div class="sect3">
+<h4 id="_测试_16">13.3.1. 测试</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">&gt; `(+ 1 ,(+ 2 3))
+(+ 1 5)
+&gt; (define l '(3 4 5))
+L
+&gt; `(1 2 ,@l)
+(1 2 3 4 5)</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_let">13.4. let</h3>
+<div class="paragraph">
+<p>我们现在使用QUASITUOTE来定义一种新的特殊形式：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(LET ((sym1 expr1)
+      (sym2 expr2)
+      ...)
+  body...)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>LET先对expr1求值，并绑定到sym1,再对expr2求值，并绑定到sym2,等等。然后将body的求值结果返回。定义很简单：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(defmacro (let defs . body)
+  `((lambda ,(map car defs) ,@body)
+    ,@(map cadr defs)))</code></pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_例子_3">13.4.1. 例子</h4>
+<div class="paragraph">
+<p>当我们对下面的形式进行求值时：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(LET ((X 3) (Y 5)) (+ X Y))</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>它将会被LET宏转换成：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">((LAMBDA (X Y) (+ X Y)) 3 5)</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_测试_17">13.4.2. 测试</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">&gt; (let ((x 3) (y 5)) (+ x y))
+8
+&gt; x
+Symbol not bound</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>LET表达式可以让我们定义临时变量。</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_一个小技巧">13.5. 一个小技巧</h3>
+<div class="paragraph">
+<p>我们可以使用LET来扩展内置运算符 <code>+</code> ，使得可以对任意数量的参数进行相加。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(define +
+  (let ((old+ +))
+    (lambda xs (foldl old+ 0 xs))))</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>将上面的定义和在第十章中定义的ADD对比一下。</p>
+</div>
+<div class="sect3">
+<h4 id="_测试_18">13.5.1. 测试</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">&gt; (+ 1 2 3 4)
+10</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>我们甚至不需要触碰builtin_add函数或者重新编译解释器。</p>
+</div>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -4244,7 +4568,7 @@ env_set(env, make_sym("PAIR?"), make_builtin(builtin_pairp));</code></pre>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-05-26 16:22:08 +0800
+Last updated 2021-05-26 17:37:52 +0800
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
