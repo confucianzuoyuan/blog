@@ -280,7 +280,9 @@ typedef enum {
 
 那么经过词法分析生成的4个 `token` 应该是：
 
-image::lexer.png[词法分析示意图]
+|===
+| ( | foo | bar | )
+|===
 
 让我们先来创建一个词法分析器（lexer），词法分析器将返回 `token` 的开始位置的指针和结束位置的指针。
 
@@ -2395,7 +2397,333 @@ $ gcc lisp.c -lreadline -o lisp
 
 == 第九章：语法糖
 
-== 第十章：变长参数函数
+我们将定义一些其他语法，以方便输入一些常用表达式。回想一下，我们已经允许用户输入
+
+[source,scheme]
+----
+(A B C)
+----
+
+用来替换
+
+[source,scheme]
+----
+(A . (B . (C . NIL)))
+----
+
+=== 单引号
+
+为了在表达式中包含文字符号或列表，我们需要使用QUOTE运算符。作为快捷方式，我们将定义
+
+[source,scheme]
+----
+'EXPR
+----
+
+相当于
+
+[source,scheme]
+----
+(QUOTE EXPR)
+----
+
+因此，例如以下形式是等效的：
+
+|===
+| Abbreviation | Canonical form | Evaluates to
+| 'FOO | (QUOTE FOO) | FOO
+| '(+ 1 2) | (QUOTE (+ 1 2)) | (+ 1 2)
+| '(A . B) | (QUOTE (A . B)) | (A . B)
+|===
+
+词法分析器需要知道引号是前缀（即，引号可以紧接在另一个 `token` 之前出现，但不一定是分隔符）。
+
+[source,c]
+----
+int lex(const char *str, const char **start, const char **end)
+{
+    const char *ws = " \t\n";
+    const char *delim = "() \t\n";
+    const char *prefix = "()\'";
+    .
+    .
+    .
+}
+----
+
+同样，read_expr必须将其转换为正确的列表表达式。
+
+[source,c]
+----
+int read_expr(const char *input, const char **end, Atom *result)
+{
+    const char *token;
+    Error err;
+
+    err = lex(input, &token, end);
+    if (err)
+        return err;
+
+    if (token[0] == '(') {
+        return read_list(*end, end, result);
+    } else if (token[0] == ')') {
+        return Error_Syntax;
+    } else if (token[0] == '\'') {
+        *result = cons(make_sym("QUOTE"), cons(nil, nil));
+        return read_expr(*end, end, &car(cdr(*result)));
+    } else {
+        return parse_simple(token, *end, result);
+    }
+}
+----
+
+==== 测试
+
+[source,text]
+----
+> (define x '(a b c))
+X
+> x
+(A B C)
+> 'x
+X
+> (define foo 'bar)
+FOO
+> foo
+BAR
+> ''()
+(QUOTE NIL)
+----
+
+=== 函数定义
+
+每次我们想要定义一个函数时都必须键入一个lambda表达式，因此很麻烦，因此我们将修改DEFINE运算符来避免这种情况。
+
+[source,scheme]
+----
+(DEFINE (name args...) body...)
+----
+
+相当于
+
+[source,scheme]
+----
+(DEFINE name (LAMBDA (args...) body...))
+----
+
+下面是实现代码：
+
+[source,c]
+----
+int eval_expr(Atom expr, Atom env, Atom *result)
+{
+    .
+    .
+    .
+    if (op.type == AtomType_Symbol) {
+        if (strcmp(op.value.symbol, "QUOTE") == 0) {
+        .
+        .
+        .
+        } else if (strcmp(op.value.symbol, "DEFINE") == 0) {
+            Atom sym, val;
+
+            if (nilp(args) || nilp(cdr(args)))
+                return Error_Args;
+
+            sym = car(args);
+            if (sym.type == AtomType_Pair) {
+                err = make_closure(env, cdr(sym), cdr(args), &val);
+                sym = car(sym);
+                if (sym.type != AtomType_Symbol)
+                    return Error_Type;
+            } else if (sym.type == AtomType_Symbol) {
+                if (!nilp(cdr(cdr(args))))
+                    return Error_Args;
+                err = eval_expr(car(cdr(args)), env, &val);
+            } else {
+                return Error_Type;
+            }
+
+            if (err)
+                return err;
+
+            *result = sym;
+            return env_set(env, sym, val);
+        } else if (strcmp(op.value.symbol, "LAMBDA") == 0) {
+        .
+        .
+        .
+        }
+    }
+    .
+    .
+    .
+}
+----
+
+==== 测试
+
+[source,text]
+----
+> (define (square x) (* x x))
+SQUARE
+> (square 3)
+9
+----
+
+== 第十章：变长参数的函数
+
+到目前为止，所有函数都具有指定数量的命名参数。现在，我们将介绍一种用于定义可变参数的语法，该语法可以采用固定数量的命名参数和可变数量的附加参数，这些参数被收集到命名列表中。
+
+可变参数函数的参数声明是不正规的列表（improper list）：
+
+|===
+| | λ-syntax | Combined DEFINE
+| 3 args | (LAMBDA (arg1 arg2 arg3) body...) | (DEFINE (name arg1 arg2 arg3) body...)
+| ≥2 args | (LAMBDA (arg1 arg2 . rest) body...) | (DEFINE (name arg1 arg2 . rest) body...)
+| ≥1 args | (LAMBDA (arg1 . rest) body...) | (DEFINE (name arg1 . rest) body...)
+| ≥0 args | (LAMBDA args body...) | (DEFINE (name . args) body...)
+|===
+
+在上面的定义中，参数的绑定如下：
+
+[cols="^1,^2a"]
+|===
+| 定义 |
+
+[cols="^1"]
+!===
+! (f a b c)
+!===
+
+!===
+! Value of a ! Value of b ! Value of c
+!===
+
+| (DEFINE (f a b c) body...) |
+
+!===
+! 1 ! 2 ! 3
+!===
+
+| (DEFINE (f a b . c) body...) |
+
+!===
+! 1 ! 2 ! (3)
+!===
+
+| (DEFINE (f . a) body...) |
+
+!===
+! 1 ! (2 3) !
+!===
+
+
+| (DEFINE (f . a) body...) |
+
+!===
+! (1 2 3) ! !
+!===
+
+|===
+
+=== 实现
+
+所需要做的只是对make_closure进行一个小的修改以接受该声明：
+
+[source,c]
+----
+int make_closure(Atom env, Atom args, Atom body, Atom *result)
+{
+    Atom p;
+
+    if (!listp(body))
+        return Error_Syntax;
+
+    /* Check argument names are all symbols */
+    p = args;
+    while (!nilp(p)) {
+        if (p.type == AtomType_Symbol)
+            break;
+        else if (p.type != AtomType_Pair
+                || car(p).type != AtomType_Symbol)
+            return Error_Type;
+        p = cdr(p);
+    }
+
+    *result = cons(env, cons(args, body));
+    result->type = AtomType_Closure;
+
+    return Error_OK;
+}
+----
+
+另一个适用于将其他参数绑定到列表中的方法：
+
+[source,c]
+----
+int apply(Atom fn, Atom args, Atom *result)
+{
+    .
+    .
+    .
+    /* Bind the arguments */
+    while (!nilp(arg_names)) {
+        if (arg_names.type == AtomType_Symbol) {
+            env_set(env, arg_names, args);
+            args = nil;
+            break;
+        }
+
+        if (nilp(args))
+            return Error_Args;
+        env_set(env, car(arg_names), car(args));
+        arg_names = cdr(arg_names);
+        args = cdr(args);
+    }
+    if (!nilp(args))
+        return Error_Args;
+    .
+    .
+    .
+}
+----
+
+=== 测试
+
+一个繁琐的例子
+
+[source,text]
+----
+> ((lambda (a . b) a) 1 2 3)
+1
+> ((lambda (a . b) b) 1 2 3)
+(2 3)
+> ((lambda args args) 1 2 3)
+(1 2 3)
+----
+
+我们可以创建一个变长参数的累加器：
+
+[source,text]
+----
+> (define (sum-list xs)
+    (if xs
+        (+ (car xs) (sum-list (cdr xs)))
+        0))
+SUM-LIST
+> (sum-list '(1 2 3))
+6
+> (define (add . xs) (sum-list xs))
+ADD
+> (add 1 2 3)
+6
+> (add 1 (- 4 2) (/ 9 3))
+6
+----
+
+由于始终可以将列表传递给常规函数，因此这实际上只是另一种语法糖。
 
 == 第十一章：宏
 

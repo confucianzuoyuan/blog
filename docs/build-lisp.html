@@ -515,8 +515,26 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#_完整代码_2">8.4. 完整代码</a></li>
 </ul>
 </li>
-<li><a href="#_第九章语法糖">9. 第九章：语法糖</a></li>
-<li><a href="#_第十章变长参数函数">10. 第十章：变长参数函数</a></li>
+<li><a href="#_第九章语法糖">9. 第九章：语法糖</a>
+<ul class="sectlevel2">
+<li><a href="#_单引号">9.1. 单引号</a>
+<ul class="sectlevel3">
+<li><a href="#_测试_10">9.1.1. 测试</a></li>
+</ul>
+</li>
+<li><a href="#_函数定义">9.2. 函数定义</a>
+<ul class="sectlevel3">
+<li><a href="#_测试_11">9.2.1. 测试</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#_第十章变长参数的函数">10. 第十章：变长参数的函数</a>
+<ul class="sectlevel2">
+<li><a href="#_实现_7">10.1. 实现</a></li>
+<li><a href="#_测试_12">10.2. 测试</a></li>
+</ul>
+</li>
 <li><a href="#_第十一章宏">11. 第十一章：宏</a></li>
 <li><a href="#_第十二章库">12. 第十二章：库</a></li>
 <li><a href="#_第十三章准引用">13. 第十三章：准引用</a></li>
@@ -880,11 +898,22 @@ Atom make_sym(const char *s)
 <div class="paragraph">
 <p>那么经过词法分析生成的4个 <code>token</code> 应该是：</p>
 </div>
-<div class="imageblock">
-<div class="content">
-<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAasAAACGCAYAAABjVKUxAAAgAElEQVR4Xu3dCbx95fQ/8F2Zx8hQQpJmkUpR/DJnSmalaCDNxlAylAohFCrzUKYy9o1KaBAyleFbKkShDIlGmer/em//53v32d9z7973nuc599xa6/XarzPt8+xnf/bea61njcvceOONN1ZBgUAgEAgEAoHABCOwTAirCb46MbVAIBAIBAKBGoEQVnEjBAKBQCAQCEw8AiGsJv4SxQQDgUAgEAgEQljFPRAIBAKBQCAw8QiEsJr4SxQTDAQCgUAgEAhhFfdAIBAIBAKBwMQjEMJq4i9RTDAQCAQCgUAghFXcA4FAIBAIBALTIvCf//ynStt///vfJe+b33s/199e8IIX9EK/U1gdccQR1bnnnlttvfXW1bLLLlsts8wyA6+z+U7+8XLLLbfk/+2xZvrst+uvv766wx3uUM9h2L6+CwoEAoGFgQB+0N7MfNj36btrrrmmuv3tb1/dcMMNS/Zrvscw21tipMN+G/ad8RLj9Zo+t9+nz5dcckm10kor1f8Ztq/v0vde8dPVV1+9ZvrN47Tfp8/NMdvnMt3c/v73vy/BqTmv5jzSvJrfwbn5vfd4/DA+3+TBbZ6cPg97dY19b15XXHFFtcUWW1THH398503bKaw++MEPVq94xStqQZEOnA7WHj2HsGgX1Gh+vvWtb13PI93Qzdf0Ps1hute73vWulQvZPIfmvjP9v/mbi0jwtv87m8/XXnttdcc73rF+6NLNMN280vfD5tf+rjm36c5tpu/bv8H8tre9bXX11VfX823TTEVQugqkXHfddfXY01HX/9v3wExzM9aVV15Z3elOd1qyWxp/utdh91pzTuk9zBNu7bFmul/7/tbcz0PufpmJqbeZ/kyf23PowgR+cByGw7BnsnlNprueo/COYWO2x2t+7uIRXc9Ymw+69re4xS2W8Mf2721G/s9//rO+59tCIH3uek0Kf9ovfW6+XnrppdUqq6xS86iZNvP2e3ptvvddOq+msJrufRJefX+//PLLq3333bc68MADq9133310YfWxj32sOvXUU6u//e1v1TbbbFM98YlPXEryDpPGbemc6/NMx/rZz35Wrb322kvm56Fu7/+Pf/yjuuUtb7lEM0taWXPf9J/mf9vfEXhJ0KQx0jkmJjLsc3OcCy+8sFpt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" alt="词法分析示意图">
-</div>
-</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+<col style="width: 25%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">foo</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">bar</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">)</p></td>
+</tr>
+</tbody>
+</table>
 <div class="paragraph">
 <p>让我们先来创建一个词法分析器（lexer），词法分析器将返回 <code>token</code> 的开始位置的指针和结束位置的指针。</p>
 </div>
@@ -3223,13 +3252,472 @@ int main(int argc, char **argv)
 <div class="sect1">
 <h2 id="_第九章语法糖">9. 第九章：语法糖</h2>
 <div class="sectionbody">
+<div class="paragraph">
+<p>我们将定义一些其他语法，以方便输入一些常用表达式。回想一下，我们已经允许用户输入</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(A B C)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>用来替换</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(A . (B . (C . NIL)))</code></pre>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_单引号">9.1. 单引号</h3>
+<div class="paragraph">
+<p>为了在表达式中包含文字符号或列表，我们需要使用QUOTE运算符。作为快捷方式，我们将定义</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">'EXPR</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>相当于</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(QUOTE EXPR)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>因此，例如以下形式是等效的：</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 33.3333%;">
+<col style="width: 33.3334%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Abbreviation</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Canonical form</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Evaluates to</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">'FOO</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(QUOTE FOO)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">FOO</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">'(+ 1 2)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(QUOTE (+ 1 2))</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(+ 1 2)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">'(A . B)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(QUOTE (A . B))</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(A . B)</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>词法分析器需要知道引号是前缀（即，引号可以紧接在另一个 <code>token</code> 之前出现，但不一定是分隔符）。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int lex(const char *str, const char **start, const char **end)
+{
+    const char *ws = " \t\n";
+    const char *delim = "() \t\n";
+    const char *prefix = "()\'";
+    .
+    .
+    .
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>同样，read_expr必须将其转换为正确的列表表达式。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int read_expr(const char *input, const char **end, Atom *result)
+{
+    const char *token;
+    Error err;
 
+    err = lex(input, &amp;token, end);
+    if (err)
+        return err;
+
+    if (token[0] == '(') {
+        return read_list(*end, end, result);
+    } else if (token[0] == ')') {
+        return Error_Syntax;
+    } else if (token[0] == '\'') {
+        *result = cons(make_sym("QUOTE"), cons(nil, nil));
+        return read_expr(*end, end, &amp;car(cdr(*result)));
+    } else {
+        return parse_simple(token, *end, result);
+    }
+}</code></pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_测试_10">9.1.1. 测试</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">&gt; (define x '(a b c))
+X
+&gt; x
+(A B C)
+&gt; 'x
+X
+&gt; (define foo 'bar)
+FOO
+&gt; foo
+BAR
+&gt; ''()
+(QUOTE NIL)</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_函数定义">9.2. 函数定义</h3>
+<div class="paragraph">
+<p>每次我们想要定义一个函数时都必须键入一个lambda表达式，因此很麻烦，因此我们将修改DEFINE运算符来避免这种情况。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(DEFINE (name args...) body...)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>相当于</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-scheme hljs" data-lang="scheme">(DEFINE name (LAMBDA (args...) body...))</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>下面是实现代码：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int eval_expr(Atom expr, Atom env, Atom *result)
+{
+    .
+    .
+    .
+    if (op.type == AtomType_Symbol) {
+        if (strcmp(op.value.symbol, "QUOTE") == 0) {
+        .
+        .
+        .
+        } else if (strcmp(op.value.symbol, "DEFINE") == 0) {
+            Atom sym, val;
+
+            if (nilp(args) || nilp(cdr(args)))
+                return Error_Args;
+
+            sym = car(args);
+            if (sym.type == AtomType_Pair) {
+                err = make_closure(env, cdr(sym), cdr(args), &amp;val);
+                sym = car(sym);
+                if (sym.type != AtomType_Symbol)
+                    return Error_Type;
+            } else if (sym.type == AtomType_Symbol) {
+                if (!nilp(cdr(cdr(args))))
+                    return Error_Args;
+                err = eval_expr(car(cdr(args)), env, &amp;val);
+            } else {
+                return Error_Type;
+            }
+
+            if (err)
+                return err;
+
+            *result = sym;
+            return env_set(env, sym, val);
+        } else if (strcmp(op.value.symbol, "LAMBDA") == 0) {
+        .
+        .
+        .
+        }
+    }
+    .
+    .
+    .
+}</code></pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_测试_11">9.2.1. 测试</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">&gt; (define (square x) (* x x))
+SQUARE
+&gt; (square 3)
+9</code></pre>
+</div>
+</div>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_第十章变长参数函数">10. 第十章：变长参数函数</h2>
+<h2 id="_第十章变长参数的函数">10. 第十章：变长参数的函数</h2>
 <div class="sectionbody">
+<div class="paragraph">
+<p>到目前为止，所有函数都具有指定数量的命名参数。现在，我们将介绍一种用于定义可变参数的语法，该语法可以采用固定数量的命名参数和可变数量的附加参数，这些参数被收集到命名列表中。</p>
+</div>
+<div class="paragraph">
+<p>可变参数函数的参数声明是不正规的列表（improper list）：</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 33.3333%;">
+<col style="width: 33.3334%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">λ-syntax</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Combined DEFINE</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3 args</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(LAMBDA (arg1 arg2 arg3) body&#8230;&#8203;)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(DEFINE (name arg1 arg2 arg3) body&#8230;&#8203;)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">≥2 args</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(LAMBDA (arg1 arg2 . rest) body&#8230;&#8203;)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(DEFINE (name arg1 arg2 . rest) body&#8230;&#8203;)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">≥1 args</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(LAMBDA (arg1 . rest) body&#8230;&#8203;)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(DEFINE (name arg1 . rest) body&#8230;&#8203;)</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">≥0 args</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(LAMBDA args body&#8230;&#8203;)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(DEFINE (name . args) body&#8230;&#8203;)</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>在上面的定义中，参数的绑定如下：</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 66.6667%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-center valign-top"><p class="tableblock">定义</p></td>
+<td class="tableblock halign-center valign-top"><div class="content"><table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 100%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-center valign-top"><p class="tableblock">(f a b c)</p></td>
+</tr>
+</tbody>
+</table>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 33.3333%;">
+<col style="width: 33.3334%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Value of a</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Value of b</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Value of c</p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-center valign-top"><p class="tableblock">(DEFINE (f a b c) body&#8230;&#8203;)</p></td>
+<td class="tableblock halign-center valign-top"><div class="content"><table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 33.3333%;">
+<col style="width: 33.3334%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">3</p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-center valign-top"><p class="tableblock">(DEFINE (f a b . c) body&#8230;&#8203;)</p></td>
+<td class="tableblock halign-center valign-top"><div class="content"><table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 33.3333%;">
+<col style="width: 33.3334%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">2</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(3)</p></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-center valign-top"><p class="tableblock">(DEFINE (f . a) body&#8230;&#8203;)</p></td>
+<td class="tableblock halign-center valign-top"><div class="content"><table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 33.3333%;">
+<col style="width: 33.3334%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">1</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(2 3)</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-center valign-top"><p class="tableblock">(DEFINE (f . a) body&#8230;&#8203;)</p></td>
+<td class="tableblock halign-center valign-top"><div class="content"><table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 33.3333%;">
+<col style="width: 33.3334%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">(1 2 3)</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table></div></td>
+</tr>
+</tbody>
+</table>
+<div class="sect2">
+<h3 id="_实现_7">10.1. 实现</h3>
+<div class="paragraph">
+<p>所需要做的只是对make_closure进行一个小的修改以接受该声明：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int make_closure(Atom env, Atom args, Atom body, Atom *result)
+{
+    Atom p;
 
+    if (!listp(body))
+        return Error_Syntax;
+
+    /* Check argument names are all symbols */
+    p = args;
+    while (!nilp(p)) {
+        if (p.type == AtomType_Symbol)
+            break;
+        else if (p.type != AtomType_Pair
+                || car(p).type != AtomType_Symbol)
+            return Error_Type;
+        p = cdr(p);
+    }
+
+    *result = cons(env, cons(args, body));
+    result-&gt;type = AtomType_Closure;
+
+    return Error_OK;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>另一个适用于将其他参数绑定到列表中的方法：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-c hljs" data-lang="c">int apply(Atom fn, Atom args, Atom *result)
+{
+    .
+    .
+    .
+    /* Bind the arguments */
+    while (!nilp(arg_names)) {
+        if (arg_names.type == AtomType_Symbol) {
+            env_set(env, arg_names, args);
+            args = nil;
+            break;
+        }
+
+        if (nilp(args))
+            return Error_Args;
+        env_set(env, car(arg_names), car(args));
+        arg_names = cdr(arg_names);
+        args = cdr(args);
+    }
+    if (!nilp(args))
+        return Error_Args;
+    .
+    .
+    .
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_测试_12">10.2. 测试</h3>
+<div class="paragraph">
+<p>一个繁琐的例子</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">&gt; ((lambda (a . b) a) 1 2 3)
+1
+&gt; ((lambda (a . b) b) 1 2 3)
+(2 3)
+&gt; ((lambda args args) 1 2 3)
+(1 2 3)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>我们可以创建一个变长参数的累加器：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text">&gt; (define (sum-list xs)
+    (if xs
+        (+ (car xs) (sum-list (cdr xs)))
+        0))
+SUM-LIST
+&gt; (sum-list '(1 2 3))
+6
+&gt; (define (add . xs) (sum-list xs))
+ADD
+&gt; (add 1 2 3)
+6
+&gt; (add 1 (- 4 2) (/ 9 3))
+6</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>由于始终可以将列表传递给常规函数，因此这实际上只是另一种语法糖。</p>
+</div>
+</div>
 </div>
 </div>
 <div class="sect1">
@@ -3271,7 +3759,7 @@ int main(int argc, char **argv)
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-05-25 19:32:08 +0800
+Last updated 2021-05-26 14:29:30 +0800
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
