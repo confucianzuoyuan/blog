@@ -188,8 +188,8 @@ Error make_closure(Atom env, Atom args, Atom body, Atom *result)
         if (p.type == AtomType_Symbol)
             break;
         else if (p.type != AtomType_Pair
-                || car(p).type != AtomType_Symbol)
-                return Error_Type;
+            || car(p).type != AtomType_Symbol)
+            return Error_Type;
         p = cdr(p);
     }
 
@@ -288,12 +288,10 @@ Error parse_simple(const char *start, const char *end, Atom *result)
         *p++ = *start, ++start;
     *p = '\0';
 
-    if (strcmp(buf, "nil") == 0) {
+    if (strcmp(buf, "nil") == 0)
         *result = nil;
-    }
-    else {
+    else
         *result = make_sym(buf);
-    }
 
     free(buf);
 
@@ -935,7 +933,7 @@ Error eval_do_return(Atom *stack, Atom *expr, Atom *env, Atom *result)
             Atom sym = list_get(*stack, 4);
             (void)env_set(*env, sym, *result);
             *stack = car(*stack);
-            *expr = cons(make_sym("quote"), cons(sym, nil));
+            *expr = cons(sym_quote, cons(sym, nil));
             return Error_OK;
         }
         else if (op.value.symbol == sym_if.value.symbol) {
