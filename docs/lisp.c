@@ -1044,10 +1044,10 @@ Error eval_expr(Atom expr, Atom env, Atom *result)
                 }
                 else if (op.value.symbol == sym_if.value.symbol) {
                     if (nilp(args) || nilp(cdr(args)) || nilp(cdr(cdr(args)))
-                            || !nilp(cdr(cdr(cdr(args)))))
+                        || !nilp(cdr(cdr(cdr(args)))))
                         return Error_Args;
 
-                    stack = make_frame(stack, env, cdr(env));
+                    stack = make_frame(stack, env, cdr(args));
                     list_set(stack, 2, op);
                     expr = car(args);
                     continue;
@@ -1109,22 +1109,22 @@ Error eval_expr(Atom expr, Atom env, Atom *result)
 }
 
 void print_err(Error err) {
-	switch (err) {
-	case Error_OK:
-		break;
-	case Error_Syntax:
-		puts("Syntax error");
-		break;
-	case Error_Unbound:
-		puts("Symbol not bound");
-		break;
-	case Error_Args:
-		puts("Wrong number of arguments");
-		break;
-	case Error_Type:
-		puts("Wrong type");
-		break;
-	}
+    switch (err) {
+    case Error_OK:
+        break;
+    case Error_Syntax:
+        puts("Syntax error");
+        break;
+    case Error_Unbound:
+        puts("Symbol not bound");
+        break;
+    case Error_Args:
+        puts("Wrong number of arguments");
+        break;
+    case Error_Type:
+        puts("Wrong type");
+        break;
+    }
 }
 
 int main(int argc, char **argv)
@@ -1135,13 +1135,13 @@ int main(int argc, char **argv)
     env = env_create(nil);
 
     /* Set up the initial environment */
-	sym_t = make_sym("t");
-	sym_quote = make_sym("quote");
-	sym_define = make_sym("define");
-	sym_lambda = make_sym("lambda");
-	sym_if = make_sym("if");
-	sym_defmacro = make_sym("defmacro");
-	sym_apply = make_sym("apply");
+    sym_t = make_sym("t");
+    sym_quote = make_sym("quote");
+    sym_define = make_sym("define");
+    sym_lambda = make_sym("lambda");
+    sym_if = make_sym("if");
+    sym_defmacro = make_sym("defmacro");
+    sym_apply = make_sym("apply");
 
     env_set(env, make_sym("car"), make_builtin(builtin_car));
     env_set(env, make_sym("cdr"), make_builtin(builtin_cdr));
