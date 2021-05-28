@@ -1,3 +1,7 @@
+/* Based on Building LISP (http://www.lwh.jp/lisp/index.html) */
+/* with bug fixes and enhancements */
+/* case-sensitive Lisp-1 */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
