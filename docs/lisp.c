@@ -926,7 +926,7 @@ Error eval_do_return(Atom *stack, Atom *expr, Atom *env, Atom *result)
         /* Finished working on special form */
         if (op.value.symbol == sym_define.value.symbol) {
             Atom sym = list_get(*stack, 4);
-            (void) env_set(*env, sym, *result);
+            (void)env_set(*env, sym, *result);
             *stack = car(*stack);
             *expr = cons(make_sym("quote"), cons(sym, nil));
             return Error_OK;
@@ -1016,7 +1016,7 @@ Error eval_expr(Atom expr, Atom env, Atom *result)
                         sym = car(sym);
                         if (sym.type != AtomType_Symbol)
                             return Error_Type;
-                        (void) env_set(env, sym, *result);
+                        (void)env_set(env, sym, *result);
                         *result = sym;
                     }
                     else if (sym.type == AtomType_Symbol) {
@@ -1065,7 +1065,7 @@ Error eval_expr(Atom expr, Atom env, Atom *result)
                     if (!err) {
                         macro.type = AtomType_Macro;
                         *result = name;
-                        (void) env_set(env, name, macro);
+                        (void)env_set(env, name, macro);
                     }
                 }
                 else if (op.value.symbol == sym_apply.value.symbol) {
