@@ -6,25 +6,21 @@
 #include <readline/readline.h>
 
 enum AtomType {
-	AtomType_Nil,
-	AtomType_Pair,
-	AtomType_Symbol,
-	AtomType_Integer,
-	AtomType_Builtin,
-	AtomType_Closure,
-	AtomType_Macro
+    AtomType_Nil,
+    AtomType_Pair,
+    AtomType_Symbol,
+    AtomType_Integer,
+    AtomType_Builtin,
+    AtomType_Closure,
+    AtomType_Macro
 };
 
 typedef enum {
-    Error_OK = 0,
-    Error_Syntax,
-    Error_Unbound,
-    Error_Args,
-    Error_Type
+    Error_OK = 0, Error_Syntax, Error_Unbound, Error_Args, Error_Type
 } Error;
 
 typedef struct Atom Atom;
-typedef Error (*Builtin)(Atom args, Atom *result);
+typedef Error(*Builtin)(Atom args, Atom *result);
 
 struct Atom
 {
@@ -44,6 +40,7 @@ struct Pair {
     struct Atom atom[2];
 };
 
+/* forward declarations */
 Error apply(Atom fn, Atom args, Atom *result);
 int listp(Atom expr);
 char *slurp(const char *path);
@@ -61,6 +58,8 @@ Error eval_expr(Atom expr, Atom env, Atom *result);
 #define nilp(atom) ((atom).type == AtomType_Nil)
 
 static const Atom nil = { AtomType_Nil };
+/* symbols for faster comparison */
+static Atom sym_t, sym_quote, sym_define, sym_lambda, sym_if, sym_defmacro, sym_apply;
 
 struct Allocation {
     struct Pair pair;
@@ -196,7 +195,7 @@ void print_expr(Atom atom)
 {
     switch (atom.type) {
     case AtomType_Nil:
-        printf("NIL");
+        printf("nil");
         break;
     case AtomType_Pair:
         putchar('(');
@@ -226,6 +225,9 @@ void print_expr(Atom atom)
         break;
     case AtomType_Closure:
         print_expr(cdr(atom));
+        break;
+    default:
+        printf("unknown type");
         break;
     }
 }
@@ -273,10 +275,11 @@ Error parse_simple(const char *start, const char *end, Atom *result)
     buf = (char*)malloc(end - start + 1);
     p = buf;
     while (start != end)
-        *p++ = toupper(*start), ++start;
+        /* *p++ = toupper(*start), ++start; */
+        *p++ = *start, ++start;
     *p = '\0';
 
-    if (strcmp(buf, "NIL") == 0) {
+    if (strcmp(buf, "nil") == 0) {
         *result = nil;
     } else {
         *result = make_sym(buf);
@@ -348,24 +351,26 @@ Error read_expr(const char *input, const char **end, Atom *result)
     if (err)
         return err;
 
-    if (token[0] == '(') {
+    if (token[0] == '(')
         return read_list(*end, end, result);
-    } else if (token[0] == '`') {
-        *result = cons(make_sym("QUASIQUOTE"), cons(nil, nil));
-        return read_expr(*end, end, &car(cdr(*result)));
-    } else if (token[0] == ',') {
-        *result = cons(make_sym(
-            token[1] == '@' ? "UNQUOTE-SPLICING" : "UNQUOTE"),
-            cons(nil, nil));
-        return read_expr(*end, end, &car(cdr(*result)));
-    } else if (token[0] == ')') {
+    else if (token[0] == ')')
         return Error_Syntax;
-    } else if (token[0] == '\'') {
-        *result = cons(make_sym("QUOTE"), cons(nil, nil));
+    else if (token[0] == '\'') {
+        *result = cons(make_sym("quote"), cons(nil, nil));
         return read_expr(*end, end, &car(cdr(*result)));
-    } else {
-        return parse_simple(token, *end, result);
     }
+    else if (token[0] == '`') {
+        *result = cons(make_sym("quasiquote"), cons(nil, nil));
+        return read_expr(*end, end, &car(cdr(*result)));
+    }
+    else if (token[0] == ',') {
+        *result = cons(make_sym(
+                token[1] == '@' ? "unquote-splicing" : "unquote"),
+                cons(nil, nil));
+        return read_expr(*end, end, &car(cdr(*result)));
+    }
+    else
+        return parse_simple(token, *end, result);
 }
 
 Atom env_create(Atom parent)
@@ -449,9 +454,8 @@ Error apply(Atom fn, Atom args, Atom *result)
 
     if (fn.type == AtomType_Builtin)
         return (*fn.value.builtin)(args, result);
-    else if (fn.type != AtomType_Closure) {
+    else if (fn.type != AtomType_Closure)
         return Error_Type;
-    }
 
     env = env_create(car(fn));
     arg_names = car(cdr(fn));
@@ -650,7 +654,7 @@ Error builtin_apply(Atom args, Atom *result)
 Error builtin_eq(Atom args, Atom *result)
 {
     Atom a, b;
-    int eq;
+    int eq = 0;
 
     if (nilp(args) || nilp(cdr(args)) || !nilp(cdr(cdr(args))))
         return Error_Args;
@@ -659,8 +663,7 @@ Error builtin_eq(Atom args, Atom *result)
     b = car(cdr(args));
 
     if (a.type == b.type) {
-        switch (a.type)
-        {
+        switch (a.type) {
         case AtomType_Nil:
             eq = 1;
             break;
@@ -678,9 +681,10 @@ Error builtin_eq(Atom args, Atom *result)
         case AtomType_Builtin:
             eq = (a.value.builtin == b.value.builtin);
             break;
+        default:
+            /* impossible */
+            break;
         }
-    } else {
-        eq = 0;
     }
 
     *result = eq ? make_sym("T") : nil;
@@ -703,13 +707,15 @@ char *slurp(const char *path)
     long len;
 
     file = fopen(path, "r");
-    if (!file)
+    if (!file) {
+        printf("Reading %s filed.\n", path);
         return NULL;
+    }
     fseek(file, 0, SEEK_END);
     len = ftell(file);
     fseek(file, 0, SEEK_SET);
 
-    buf = malloc(len + 1);
+    buf = (char *)malloc(len + 1);
     if (!buf)
         return NULL;
 
@@ -775,10 +781,10 @@ Atom make_frame(Atom parent, Atom env, Atom tail)
 {
     return cons(parent,
         cons(env,
-        cons(nil, // op
+        cons(nil, /* op */
         cons(tail,
-        cons(nil, // args
-        cons(nil, // body
+        cons(nil, /* args */
+        cons(nil, /* body */
         nil))))));
 }
 
@@ -791,7 +797,7 @@ Error eval_do_exec(Atom *stack, Atom *expr, Atom *env)
     *expr = car(body);
     body = cdr(body);
     if (nilp(body)) {
-        // 函数执行完毕，弹栈
+        /* Finished function; pop the stack */
         *stack = car(*stack);
     } else {
         list_set(*stack, 5, body);
@@ -817,7 +823,7 @@ Error eval_do_bind(Atom *stack, Atom *expr, Atom *env)
     list_set(*stack, 1, *env);
     list_set(*stack, 5, body);
 
-    // 绑定参数
+    /* Bind the arguments */
     while (!nilp(arg_names)) {
         if (arg_names.type == AtomType_Symbol) {
             env_set(*env, arg_names, args);
@@ -852,7 +858,7 @@ Error eval_do_apply(Atom *stack, Atom *expr, Atom *env, Atom *result)
     }
 
     if (op.type == AtomType_Symbol) {
-        if (strcmp(op.value.symbol, "APPLY") == 0) {
+        if (strcmp(op.value.symbol, "apply") == 0) {
             // 替换掉当前帧
             *stack = car(*stack);
             *stack = make_frame(*stack, *env, nil);
@@ -903,13 +909,13 @@ Error eval_do_return(Atom *stack, Atom *expr, Atom *env, Atom *result)
             return eval_do_bind(stack, expr, env);
         }
     } else if (op.type == AtomType_Symbol) {
-        if (strcmp(op.value.symbol, "DEFINE") == 0) {
+        if (strcmp(op.value.symbol, "define") == 0) {
             Atom sym = list_get(*stack, 4);
             (void) env_set(*env, sym, *result);
             *stack = car(*stack);
-            *expr = cons(make_sym("QUOTE"), cons(sym, nil));
+            *expr = cons(make_sym("quote"), cons(sym, nil));
             return Error_OK;
-        } else if (strcmp(op.value.symbol, "IF") == 0) {
+        } else if (strcmp(op.value.symbol, "if") == 0) {
             args = list_get(*stack, 3);
             *expr = nilp(*result) ? car(cdr(args)) : car(args);
             *stack = car(*stack);
@@ -969,12 +975,12 @@ Error eval_expr(Atom expr, Atom env, Atom *result)
             if (op.type == AtomType_Symbol) {
                 // 处理特殊的列表形式
 
-                if (strcmp(op.value.symbol, "QUOTE") == 0) {
+                if (strcmp(op.value.symbol, "quote") == 0) {
                     if (nilp(args) || !nilp(cdr(args)))
                         return Error_Args;
 
                     *result = car(args);
-                } else if (strcmp(op.value.symbol, "DEFINE") == 0) {
+                } else if (strcmp(op.value.symbol, "define") == 0) {
                     Atom sym;
 
                     if (nilp(args) || nilp(cdr(args)))
@@ -999,11 +1005,11 @@ Error eval_expr(Atom expr, Atom env, Atom *result)
                     } else {
                         return Error_Type;
                     }
-                } else if (strcmp(op.value.symbol, "LAMBDA") == 0) {
+                } else if (strcmp(op.value.symbol, "lambda") == 0) {
                     if (nilp(args) || nilp(cdr(args)))
                         return Error_Args;
                     err = make_closure(env, car(args), cdr(args), result);
-                } else if (strcmp(op.value.symbol, "IF") == 0) {
+                } else if (strcmp(op.value.symbol, "if") == 0) {
                     if (nilp(args) || nilp(cdr(args)) || nilp(cdr(cdr(args)))
                             || !nilp(cdr(cdr(cdr(args)))))
                         return Error_Args;
@@ -1012,7 +1018,7 @@ Error eval_expr(Atom expr, Atom env, Atom *result)
                     list_set(stack, 2, op);
                     expr = car(args);
                     continue;
-                } else if (strcmp(op.value.symbol, "DEFMACRO") == 0) {
+                } else if (strcmp(op.value.symbol, "defmacro") == 0) {
                     Atom name, macro;
 
                     if (nilp(args) || nilp(cdr(args)))
@@ -1032,7 +1038,7 @@ Error eval_expr(Atom expr, Atom env, Atom *result)
                         *result = name;
                         (void) env_set(env, name, macro);
                     }
-                } else if (strcmp(op.value.symbol, "APPLY") == 0) {
+                } else if (strcmp(op.value.symbol, "apply") == 0) {
                     if (nilp(args) || nilp(cdr(args)) || !nilp(cdr(cdr(args))))
                         return Error_Args;
 
@@ -1070,9 +1076,9 @@ int main(int argc, char **argv)
 
     env = env_create(nil);
 
-    env_set(env, make_sym("CAR"), make_builtin(builtin_car));
-    env_set(env, make_sym("CDR"), make_builtin(builtin_cdr));
-    env_set(env, make_sym("CONS"), make_builtin(builtin_cons));
+    env_set(env, make_sym("car"), make_builtin(builtin_car));
+    env_set(env, make_sym("cdr"), make_builtin(builtin_cdr));
+    env_set(env, make_sym("cons"), make_builtin(builtin_cons));
     env_set(env, make_sym("+"), make_builtin(builtin_add));
     env_set(env, make_sym("-"), make_builtin(builtin_subtract));
     env_set(env, make_sym("*"), make_builtin(builtin_multiply));
@@ -1080,9 +1086,9 @@ int main(int argc, char **argv)
     env_set(env, make_sym("T"), make_sym("T"));
     env_set(env, make_sym("="), make_builtin(builtin_numeq));
     env_set(env, make_sym("<"), make_builtin(builtin_less));
-    env_set(env, make_sym("APPLY"), make_builtin(builtin_apply));
-    env_set(env, make_sym("EQ?"), make_builtin(builtin_eq));
-    env_set(env, make_sym("PAIR?"), make_builtin(builtin_pairp));
+    env_set(env, make_sym("apply"), make_builtin(builtin_apply));
+    env_set(env, make_sym("eq?"), make_builtin(builtin_eq));
+    env_set(env, make_sym("pair?"), make_builtin(builtin_pairp));
 
     load_file(env, "library.lisp");
 
