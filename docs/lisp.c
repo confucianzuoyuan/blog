@@ -22,8 +22,7 @@ typedef enum {
 typedef struct Atom Atom;
 typedef Error(*Builtin)(Atom args, Atom *result);
 
-struct Atom
-{
+struct Atom {
     enum AtomType type;
 
     union {
@@ -94,8 +93,8 @@ void gc_mark(Atom root)
     struct Allocation *a;
 
     if (!(root.type == AtomType_Pair
-        || root.type == AtomType_Closure
-        || root.type == AtomType_Macro))
+            || root.type == AtomType_Closure
+            || root.type == AtomType_Macro))
         return;
         
     a = (struct Allocation *)
@@ -210,7 +209,8 @@ void print_expr(Atom atom)
                 putchar(' ');
                 print_expr(car(atom));
                 atom = cdr(atom);
-            } else {
+            }
+            else {
                 printf(" . ");
                 print_expr(atom);
                 break;
@@ -285,7 +285,8 @@ Error parse_simple(const char *start, const char *end, Atom *result)
 
     if (strcmp(buf, "nil") == 0) {
         *result = nil;
-    } else {
+    }
+    else {
         *result = make_sym(buf);
     }
 
@@ -751,7 +752,8 @@ void load_file(Atom env, const char *path)
                 printf("Error in expression:\n\t");
                 print_expr(expr);
                 putchar('\n');
-            } else {
+            }
+            else {
                 print_expr(result);
                 putchar('\n');
             }
