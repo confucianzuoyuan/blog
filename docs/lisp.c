@@ -52,6 +52,7 @@ Error eval_do_exec(Atom *stack, Atom *expr, Atom *env);
 Error eval_do_bind(Atom *stack, Atom *expr, Atom *env);
 Error eval_do_apply(Atom *stack, Atom *expr, Atom *env, Atom *result);
 Error eval_expr(Atom expr, Atom env, Atom *result);
+void print_err(Error err);
 
 #define car(p) ((p).value.pair->atom[0])
 #define cdr(p) ((p).value.pair->atom[1])
@@ -98,7 +99,7 @@ void gc_mark(Atom root)
         return;
         
     a = (struct Allocation *)
-        ((char *) root.value.pair
+            ((char *)root.value.pair
             - offsetof(struct Allocation, pair));
 
     if (a->mark)
@@ -115,6 +116,7 @@ void gc()
     struct Allocation *a, **p;
     gc_mark(sym_table);
 
+    /* Free unmarked allocations */
     p = &global_allocations;
     while (*p != NULL) {
         a = *p;
@@ -126,6 +128,7 @@ void gc()
         }
     }
 
+    /* Clear marks */
     a = global_allocations;
     while (a != NULL) {
         a->mark = 0;
@@ -175,6 +178,7 @@ Error make_closure(Atom env, Atom args, Atom body, Atom *result)
     if (!listp(body))
         return Error_Syntax;
 
+    /* Check argument names are all symbols */
     p = args;
     while (!nilp(p)) {
         if (p.type == AtomType_Symbol)
@@ -247,13 +251,11 @@ Error lex(const char *str, const char **start, const char **end)
 
     *start = str;
 
-    // strchr函数功能为在一个串中查找给定字符的第一个匹配之处
     if (strchr(prefix, str[0]) != NULL)
         *end = str + 1;
     else if (str[0] == ',')
         *end = str + (str[1] == '@' ? 2 : 1);
     else
-    // 该函数返回 str1 开头连续都不含字符串 str2 中字符的字符数。
         *end = str + strcspn(str, delim);
 
     return Error_OK;
@@ -265,6 +267,7 @@ Error parse_simple(const char *start, const char *end, Atom *result)
 {
     char *buf, *p;
 
+    /* Is it an integer? */
     long val = strtol(start, &p, 10);
     if (p == end) {
         result->type = AtomType_Integer;
@@ -272,6 +275,7 @@ Error parse_simple(const char *start, const char *end, Atom *result)
         return Error_OK;
     }
 
+    /* NIL or symbol */
     buf = (char*)malloc(end - start + 1);
     p = buf;
     while (start != end)
@@ -303,15 +307,14 @@ Error read_list(const char *start, const char **end, Atom *result)
         Error err;
 
         err = lex(*end, &token, end);
-        if (err) {
+        if (err)
             return err;
-        }
 
-        if (token[0] == ')') {
+        if (token[0] == ')')
             return Error_OK;
-        }
 
         if (token[0] == '.' && *end - token == 1) {
+            /* Improper list */
             if (nilp(p))
                 return Error_Syntax;
 
@@ -321,6 +324,7 @@ Error read_list(const char *start, const char **end, Atom *result)
 
             cdr(p) = item;
 
+            /* Read the closing ')' */
             err = lex(*end, &token, end);
             if (!err && token[0] != ')')
                 err = Error_Syntax;
@@ -333,9 +337,11 @@ Error read_list(const char *start, const char **end, Atom *result)
             return err;
 
         if (nilp(p)) {
+            /* First item */
             *result = cons(item, nil);
             p = *result;
-        } else {
+        }
+        else {
             cdr(p) = cons(item, nil);
             p = cdr(p);
         }
@@ -461,6 +467,7 @@ Error apply(Atom fn, Atom args, Atom *result)
     arg_names = car(cdr(fn));
     body = cdr(cdr(fn));
 
+    /* Bind the arguments */
     while (!nilp(arg_names)) {
         if (arg_names.type == AtomType_Symbol) {
             env_set(env, arg_names, args);
@@ -477,6 +484,7 @@ Error apply(Atom fn, Atom args, Atom *result)
     if (!nilp(args))
         return Error_Args;
 
+    /* Evaluate the body */
     while (!nilp(body)) {
         Error err = eval_expr(car(body), env, result);
         if (err)
@@ -612,7 +620,7 @@ Error builtin_numeq(Atom args, Atom *result)
     if (a.type != AtomType_Integer || b.type != AtomType_Integer)
         return Error_Type;
 
-    *result = (a.value.integer == b.value.integer) ? make_sym("T") : nil;
+    *result = (a.value.integer == b.value.integer) ? sym_t : nil;
 
     return Error_OK;
 }
@@ -630,7 +638,7 @@ Error builtin_less(Atom args, Atom *result)
     if (a.type != AtomType_Integer || b.type != AtomType_Integer)
         return Error_Type;
 
-    *result = (a.value.integer < b.value.integer) ? make_sym("T") : nil;
+    *result = (a.value.integer < b.value.integer) ? sym_t : nil;
 
     return Error_OK;
 }
@@ -687,7 +695,7 @@ Error builtin_eq(Atom args, Atom *result)
         }
     }
 
-    *result = eq ? make_sym("T") : nil;
+    *result = eq ? sym_t : nil;
     return Error_OK;
 }
 
@@ -696,7 +704,7 @@ Error builtin_pairp(Atom args, Atom *result)
     if (nilp(args) || !nilp(cdr(args)))
         return Error_Args;
 
-    *result = (car(args).type == AtomType_Pair) ? make_sym("T") : nil;
+    *result = (car(args).type == AtomType_Pair) ? sym_t : nil;
     return Error_OK;
 }
 
@@ -706,7 +714,7 @@ char *slurp(const char *path)
     char *buf;
     long len;
 
-    file = fopen(path, "r");
+    file = fopen(path, "rb");
     if (!file) {
         printf("Reading %s filed.\n", path);
         return NULL;
@@ -739,6 +747,7 @@ void load_file(Atom env, const char *path)
             Atom result;
             Error err = eval_expr(expr, env, &result);
             if (err) {
+                print_err(err);
                 printf("Error in expression:\n\t");
                 print_expr(expr);
                 putchar('\n');
@@ -799,7 +808,8 @@ Error eval_do_exec(Atom *stack, Atom *expr, Atom *env)
     if (nilp(body)) {
         /* Finished function; pop the stack */
         *stack = car(*stack);
-    } else {
+    }
+    else {
         list_set(*stack, 5, body);
     }
 
@@ -858,8 +868,8 @@ Error eval_do_apply(Atom *stack, Atom *expr, Atom *env, Atom *result)
     }
 
     if (op.type == AtomType_Symbol) {
-        if (strcmp(op.value.symbol, "apply") == 0) {
-            // 替换掉当前帧
+        if (op.value.symbol == sym_apply.value.symbol) {
+            /* Replace the current frame */
             *stack = car(*stack);
             *stack = make_frame(*stack, *env, nil);
             op = car(args);
@@ -876,7 +886,8 @@ Error eval_do_apply(Atom *stack, Atom *expr, Atom *env, Atom *result)
         *stack = car(*stack);
         *expr = cons(op, args);
         return Error_OK;
-    } else if (op.type != AtomType_Closure) {
+    }
+    else if (op.type != AtomType_Closure) {
         return Error_Type;
     }
 
@@ -892,15 +903,17 @@ Error eval_do_return(Atom *stack, Atom *expr, Atom *env, Atom *result)
     body = list_get(*stack, 5);
 
     if (!nilp(body)) {
+        /* Still running a procedure; ignore the result */
         return eval_do_apply(stack, expr, env, result);
     }
 
     if (nilp(op)) {
+        /* Finished evaluating operator */
         op = *result;
         list_set(*stack, 2, op);
 
         if (op.type == AtomType_Macro) {
-            // 不要对宏的参数进行求值
+            /* Don't evaluate macro arguments */
             args = list_get(*stack, 3);
             *stack = make_frame(*stack, *env, nil);
             op.type = AtomType_Closure;
@@ -908,40 +921,46 @@ Error eval_do_return(Atom *stack, Atom *expr, Atom *env, Atom *result)
             list_set(*stack, 4, args);
             return eval_do_bind(stack, expr, env);
         }
-    } else if (op.type == AtomType_Symbol) {
-        if (strcmp(op.value.symbol, "define") == 0) {
+    }
+    else if (op.type == AtomType_Symbol) {
+        /* Finished working on special form */
+        if (op.value.symbol == sym_define.value.symbol) {
             Atom sym = list_get(*stack, 4);
             (void) env_set(*env, sym, *result);
             *stack = car(*stack);
             *expr = cons(make_sym("quote"), cons(sym, nil));
             return Error_OK;
-        } else if (strcmp(op.value.symbol, "if") == 0) {
+        }
+        else if (op.value.symbol == sym_if.value.symbol) {
             args = list_get(*stack, 3);
             *expr = nilp(*result) ? car(cdr(args)) : car(args);
             *stack = car(*stack);
             return Error_OK;
-        } else {
+        }
+        else {
             goto store_arg;
         }
-    } else if (op.type == AtomType_Macro) {
-        // 完成对宏的求值
+    }
+    else if (op.type == AtomType_Macro) {
+        /* Finished evaluating macro */
         *expr = *result;
         *stack = car(*stack);
         return Error_OK;
-    } else {
+    }
+    else {
     store_arg:
-        // 将求值过的参数保存下来
+        /* Store evaluated argument */
         args = list_get(*stack, 4);
         list_set(*stack, 4, cons(*result, args));
     }
 
     args = list_get(*stack, 3);
     if (nilp(args)) {
-        // 没有需要求值的参数了
+        /* No more arguments left to evaluate */
         return eval_do_apply(stack, expr, env, result);
     }
 
-    // 对下一个参数求值
+    /* Evaluate next argument */
     *expr = car(args);
     list_set(*stack, 3, cdr(args));
     return Error_OK;
@@ -955,32 +974,37 @@ Error eval_expr(Atom expr, Atom env, Atom *result)
     Atom stack = nil;
 
     do {
-        if (++count == 100000) {
+        if (++count > 100000) {
             gc_mark(expr);
             gc_mark(env);
             gc_mark(stack);
             gc();
             count = 0;
         }
+
         if (expr.type == AtomType_Symbol) {
             err = env_get(env, expr, result);
-        } else if (expr.type != AtomType_Pair) {
+        }
+        else if (expr.type != AtomType_Pair) {
             *result = expr;
-        } else if (!listp(expr)) {
+        }
+        else if (!listp(expr)) {
             return Error_Syntax;
-        } else {
+        }
+        else {
             Atom op = car(expr);
             Atom args = cdr(expr);
 
             if (op.type == AtomType_Symbol) {
-                // 处理特殊的列表形式
+                /* Handle special forms */
 
-                if (strcmp(op.value.symbol, "quote") == 0) {
+                if (op.value.symbol == sym_quote.value.symbol) {
                     if (nilp(args) || !nilp(cdr(args)))
                         return Error_Args;
 
                     *result = car(args);
-                } else if (strcmp(op.value.symbol, "define") == 0) {
+                }
+                else if (op.value.symbol == sym_define.value.symbol) {
                     Atom sym;
 
                     if (nilp(args) || nilp(cdr(args)))
@@ -994,7 +1018,8 @@ Error eval_expr(Atom expr, Atom env, Atom *result)
                             return Error_Type;
                         (void) env_set(env, sym, *result);
                         *result = sym;
-                    } else if (sym.type == AtomType_Symbol) {
+                    }
+                    else if (sym.type == AtomType_Symbol) {
                         if (!nilp(cdr(cdr(args))))
                             return Error_Args;
                         stack = make_frame(stack, env, nil);
@@ -1002,14 +1027,17 @@ Error eval_expr(Atom expr, Atom env, Atom *result)
                         list_set(stack, 4, sym);
                         expr = car(cdr(args));
                         continue;
-                    } else {
+                    }
+                    else {
                         return Error_Type;
                     }
-                } else if (strcmp(op.value.symbol, "lambda") == 0) {
+                }
+                else if (op.value.symbol == sym_lambda.value.symbol) {
                     if (nilp(args) || nilp(cdr(args)))
                         return Error_Args;
                     err = make_closure(env, car(args), cdr(args), result);
-                } else if (strcmp(op.value.symbol, "if") == 0) {
+                }
+                else if (op.value.symbol == sym_if.value.symbol) {
                     if (nilp(args) || nilp(cdr(args)) || nilp(cdr(cdr(args)))
                             || !nilp(cdr(cdr(cdr(args)))))
                         return Error_Args;
@@ -1018,7 +1046,8 @@ Error eval_expr(Atom expr, Atom env, Atom *result)
                     list_set(stack, 2, op);
                     expr = car(args);
                     continue;
-                } else if (strcmp(op.value.symbol, "defmacro") == 0) {
+                }
+                else if (op.value.symbol == sym_defmacro.value.symbol) {
                     Atom name, macro;
 
                     if (nilp(args) || nilp(cdr(args)))
@@ -1038,7 +1067,8 @@ Error eval_expr(Atom expr, Atom env, Atom *result)
                         *result = name;
                         (void) env_set(env, name, macro);
                     }
-                } else if (strcmp(op.value.symbol, "apply") == 0) {
+                }
+                else if (op.value.symbol == sym_apply.value.symbol) {
                     if (nilp(args) || nilp(cdr(args)) || !nilp(cdr(cdr(args))))
                         return Error_Args;
 
@@ -1046,13 +1076,17 @@ Error eval_expr(Atom expr, Atom env, Atom *result)
                     list_set(stack, 2, op);
                     expr = car(args);
                     continue;
-                } else {
+                }
+                else {
                     goto push;
                 }
-            } else if (op.type == AtomType_Builtin) {
+            }
+            else if (op.type == AtomType_Builtin) {
                 err = (*op.value.builtin)(args, result);
-            } else {
+            }
+            else {
             push:
+                /* Handle function application */
                 stack = make_frame(stack, env, args);
                 expr = op;
                 continue;
@@ -1069,12 +1103,40 @@ Error eval_expr(Atom expr, Atom env, Atom *result)
     return err;
 }
 
+void print_err(Error err) {
+	switch (err) {
+	case Error_OK:
+		break;
+	case Error_Syntax:
+		puts("Syntax error");
+		break;
+	case Error_Unbound:
+		puts("Symbol not bound");
+		break;
+	case Error_Args:
+		puts("Wrong number of arguments");
+		break;
+	case Error_Type:
+		puts("Wrong type");
+		break;
+	}
+}
+
 int main(int argc, char **argv)
 {
     Atom env;
     char *input;
 
     env = env_create(nil);
+
+    /* Set up the initial environment */
+	sym_t = make_sym("t");
+	sym_quote = make_sym("quote");
+	sym_define = make_sym("define");
+	sym_lambda = make_sym("lambda");
+	sym_if = make_sym("if");
+	sym_defmacro = make_sym("defmacro");
+	sym_apply = make_sym("apply");
 
     env_set(env, make_sym("car"), make_builtin(builtin_car));
     env_set(env, make_sym("cdr"), make_builtin(builtin_cdr));
@@ -1083,7 +1145,7 @@ int main(int argc, char **argv)
     env_set(env, make_sym("-"), make_builtin(builtin_subtract));
     env_set(env, make_sym("*"), make_builtin(builtin_multiply));
     env_set(env, make_sym("/"), make_builtin(builtin_divide));
-    env_set(env, make_sym("T"), make_sym("T"));
+    env_set(env, sym_t, sym_t);
     env_set(env, make_sym("="), make_builtin(builtin_numeq));
     env_set(env, make_sym("<"), make_builtin(builtin_less));
     env_set(env, make_sym("apply"), make_builtin(builtin_apply));
