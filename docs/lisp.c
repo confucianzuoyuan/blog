@@ -97,13 +97,13 @@ void gc_mark(Atom root)
     struct Allocation *a;
 
     if (!(root.type == AtomType_Pair
-            || root.type == AtomType_Closure
-            || root.type == AtomType_Macro))
+        || root.type == AtomType_Closure
+        || root.type == AtomType_Macro))
         return;
         
     a = (struct Allocation *)
-            ((char *)root.value.pair
-            - offsetof(struct Allocation, pair));
+        ((char *)root.value.pair
+        - offsetof(struct Allocation, pair));
 
     if (a->mark)
         return;
@@ -126,7 +126,8 @@ void gc()
         if (!a->mark) {
             *p = a->next;
             free(a);
-        } else {
+        }
+        else {
             p = &a->next;
         }
     }
