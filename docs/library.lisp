@@ -59,3 +59,7 @@
 (define +
   (let ((old+ +))
     (lambda xs (foldl old+ 0 xs))))
+
+(define *
+  (let ((old* *))
+    (lambda xs (foldl old* 1 xs))))
