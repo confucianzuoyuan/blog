@@ -454,6 +454,25 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </ul>
 </li>
 <li><a href="#_可变性">1.3. 可变性</a></li>
+<li><a href="#_总结">1.4. 总结</a>
+<ul class="sectlevel3">
+<li><a href="#_术语和概念">1.4.1. 术语和概念</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#_ocaml基础">2. OCaml基础</a>
+<ul class="sectlevel2">
+<li><a href="#_和ocaml进行交互">2.1. 和OCaml进行交互</a>
+<ul class="sectlevel3">
+<li><a href="#_类型和值">2.1.1. 类型和值</a></li>
+<li><a href="#_函数">2.1.2. 函数</a></li>
+<li><a href="#_将代码储存在文件中">2.1.3. 将代码储存在文件中</a></li>
+<li><a href="#_main函数呢">2.1.4. Main函数呢？</a></li>
+<li><a href="#_在_utop_中载入代码">2.1.5. 在 <code>utop</code> 中载入代码</a></li>
+<li><a href="#_utop_工作流">2.1.6. <code>utop</code> 工作流</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -679,12 +698,411 @@ ML语言遥遥领先于那个时代。它建立在简洁明了的数学思想之
 <p>然而， <strong>不可变性</strong> 将程序员从这些担忧中解放出来。它提供了构建正确和并发程序的强大方法。OCaml主要是一种不可变语言，就像大多数函数式语言一样。它确实支持具有可变状态的命令式编程，但是我们在课程开始大约两个月后才会使用这些功能——部分原因是因为我们根本不需要它们，部分原因是为了让你从“过程式编程”中退出来，否则无法摆脱对可变性的依赖。这种不受可变性影响的自由是3110课程可以为您带来的最大视角变化之一。</p>
 </div>
 </div>
+<div class="sect2">
+<h3 id="_总结">1.4. 总结</h3>
+<div class="paragraph">
+<p>本课程是关于成为一名更好的程序员。学习函数式编程将对此有所帮助。我们遇到的最大障碍是说一种新语言时的挫败感，尤其是放弃可变状态。但好处将是巨大的：发现编程超越了任何特定语言或语言家族的编程，接触到高级语言功能，以及对美的欣赏。</p>
+</div>
+<div class="sect3">
+<h4 id="_术语和概念">1.4.1. 术语和概念</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>dynamic typing：动态类型</p>
+</li>
+<li>
+<p>first-class functions：函数作为一等公民</p>
+</li>
+<li>
+<p>functional programming languages：函数式编程语言</p>
+</li>
+<li>
+<p>immutability：不可变性</p>
+</li>
+<li>
+<p>Lisp</p>
+</li>
+<li>
+<p>ML</p>
+</li>
+<li>
+<p>OCaml</p>
+</li>
+<li>
+<p>referential transparency：引用透明</p>
+</li>
+<li>
+<p>side effects：副作用</p>
+</li>
+<li>
+<p>state：状态</p>
+</li>
+<li>
+<p>static typing：静态类型</p>
+</li>
+<li>
+<p>type safety：类型安全</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_ocaml基础">2. OCaml基础</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>本章将介绍OCaml的一些基本特性。但在我们深入学习OCaml之前，让我们先谈谈一个更大的想法：学习一般的语言。</p>
+</div>
+<div class="paragraph">
+<p>本课程的次要目标之一不仅仅是让您学习一门新的编程语言，而是提高您学习新语言的技能。</p>
+</div>
+<div class="paragraph">
+<p>学习一门语言有五个基本要素：语法、语义、习语、库和工具。</p>
+</div>
+<div class="paragraph">
+<p><strong>语法</strong></p>
+</div>
+<div class="paragraph">
+<p>通过语法，我们指的是定义语言中文本格式良好程序的规则，包括关键字、对空格和格式的限制、标点符号、运算符等。学习新语言的一个更令人讨厌的方面可能是与您已经知道的语言相比，语法感觉很奇怪。但是你学习的语言越多，你就越习惯于接受语言的语法，而不是希望它有所不同。（如果你想看到一些语法非常不寻常的语言，看看APL，它需要自己的扩展键盘，以及Whitespace，其中程序完全由空格、制表符和换行符组成。）你需要了解语法只是为了完全可以对着电脑说话。</p>
+</div>
+<div class="paragraph">
+<p><strong>语义</strong></p>
+</div>
+<div class="paragraph">
+<p>通过语义，我们指的是定义程序行为的规则。换句话说，语义是关于程序的意义——特定句法代表什么计算。请注意，尽管“语义”是复数形式，但我们将其用作单数。这类似于“数学”或“物理学”。</p>
+</div>
+<div class="paragraph">
+<p>语义有两个部分，语言的动态语义和语言的静态语义。动态语义定义程序在执行或评估时的运行时行为。静态语义定义了编译时检查，以确保程序合法，超出任何语法要求。最重要的静态语义可能是类型检查：定义程序类型是否正确的规则。学习一门新语言的语义通常是真正的挑战，即使语法可能是你必须克服的第一个障碍。您需要了解语义才能说出您对计算机的意义，并且您需要说出您的意思，以便您的程序执行正确的计算。</p>
+</div>
+<div class="paragraph">
+<p><strong>习语</strong></p>
+</div>
+<div class="paragraph">
+<p>习语是指使用语言特征来表达计算的常用方法。鉴于您可以在一种语言中以多种方式表达一种计算，您会选择哪一种？有些会比其他的更自然。精通该语言的程序员会更喜欢某些表达方式。我们可以从有效使用语言中的主导范式的角度来考虑这一点，无论它们是命令式的、函数式的、面向对象的，等等。您需要理解习语来表达您的意思，不仅对计算机，而且对其他程序员。当您按习惯编写代码时，其他程序员会更好地理解您的代码。</p>
+</div>
+<div class="paragraph">
+<p><strong>库</strong></p>
+</div>
+<div class="paragraph">
+<p>库是已经为您编写的代码包，可以使您成为更有效率的程序员，因为您不必自己编写代码。 （据说懒惰是程序员的美德。）学习一门新语言的一部分是发现哪些库可用以及如何使用它们。一种语言通常提供一个标准库，让您可以访问一组核心功能，其中大部分功能您自己无法用该语言编写，例如文件I/O。</p>
+</div>
+<div class="paragraph">
+<p><strong>工具</strong></p>
+</div>
+<div class="paragraph">
+<p>至少任何语言实现都提供编译器或解释器作为与使用该语言的计算机进行交互的工具。但是还有其他种类的工具：调试器；集成开发环境（IDE）；以及性能、内存使用和正确性等方面的分析工具。学习使用与语言相关的工具也可以让你成为一个更有效率的程序员。有时很容易将工具本身与语言混淆；例如，如果您只将 Eclipse 和 Java 一起使用过，那么 Eclipse 是一个适用于多种语言的 IDE，并且可以在没有 Eclipse 的情况下使用 Java，这可能并不明显。</p>
+</div>
+<div class="paragraph">
+<p>在本课中学习 OCaml 时，我们的重点主要是语义和习语。当然，我们必须一路学习语法，但这不是我们学习的有趣部分。我们将接触 OCaml 标准库和其他几个库，特别是 OUnit（一个类似于 JUnit、HUnit 等的单元测试框架）。除了 OCaml 编译器和构建系统之外，我们将使用的主要工具是 toplevel，它提供了对代码进行交互试验的能力。</p>
+</div>
+<div class="sect2">
+<h3 id="_和ocaml进行交互">2.1. 和OCaml进行交互</h3>
+<div class="paragraph">
+<p><code>toplevel</code> 就像一个计算器或OCaml的命令行界面。它类似于DrJava，如果您在CS 2110中使用它，或者类似于交互式Python解释器，如果您在CS 1110中使用它。它对于尝试小段代码非常方便，而无需费心启动OCaml编译器。但是不要太依赖它，因为创建、编译和测试大型程序将需要更强大的工具。其他一些语言将 <code>toplevel</code> 称为REPL，它代表 <code>read-eval-print-loop</code> ：它读取程序员输入，然后求值，打印结果，然后循环。</p>
+</div>
+<div class="paragraph">
+<p>在终端窗口中，键入 <code>utop</code> 以启动顶层。按 <code>Control-D</code> 退出 <code>utop</code> 。你也可以输入 <code><mark>quit;;</code> 并按回车。请注意，您必须在那里键入 <code></mark></code> ：它是您已经看到的 <code>#</code> 提示的补充。</p>
+</div>
+<div class="sect3">
+<h4 id="_类型和值">2.1.1. 类型和值</h4>
+<div class="paragraph">
+<p>您可以在OCaml <code>utop</code> 中输入表达式。以双分号 <code>;;</code> 结束表达式然后按回车键。 OCaml然后将对表达式求值，告诉您结果值和值的类型。例如：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text"># 42;;
+- : int = 42</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>让我们从 <code>utop</code> 中分析该响应，从右到左阅读：</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>42</code> 是一个值</p>
+</li>
+<li>
+<p><code>int</code> 是值的类型</p>
+</li>
+<li>
+<p>我们并没有给值命名，所以它的名字是符号 <code>-</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>我们可以使用 <code>let</code> 定义来将值绑定到名字，例如：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text"># let x = 42;;
+val x : int = 42</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>让我们从 <code>utop</code> 中分析该响应，从左到右阅读：</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>一个值绑定到了一个名字，所以是 <code>val</code> 关键字</p>
+</li>
+<li>
+<p><code>x</code> 是值绑定到的名字</p>
+</li>
+<li>
+<p><code>int</code> 是值的类型</p>
+</li>
+<li>
+<p><code>42</code> 是值</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>你可以说“ <code>x</code> 的类型是 <code>int</code> ， 等于 <code>42</code> 。”</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_函数">2.1.2. 函数</h4>
+<div class="paragraph">
+<p>在 <code>utop</code> 中，函数定义语法如下：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text"># let increment x = x+1;;
+val increment : int -&gt; int = &lt;fun&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>分析一下响应：</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>increment</code> 是值绑定到的标识符。</p>
+</li>
+<li>
+<p><code>int &#8594; int</code> 是值的类型。这是一种将 <code>int</code> 作为输入并生成 <code>int</code> 作为输出的函数。将箭头 <code>&#8594;`</code> 视为一种将一个值转换为另一个值的视觉隐喻——这就是函数所做的。</p>
+</li>
+<li>
+<p>该值是一个函数， <code>utop</code> 选择不打印它（因为它现在已经被编译并且在内存中具有不容易进行漂亮打印的表示）。相反， <code>utop</code> 打印 <code>&lt;fun&gt;</code> ，它只是一个占位符，表明存在一些不可打印的函数值。重要提示： <code>&lt;fun&gt;</code> 本身不是一个值。</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>我们可以用如下语法来调用函数：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text"># increment 0;;
+- : int = 1
+# increment(21);;
+- : int = 22
+# increment (increment 5);;
+- : int = 7</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>但是在OCaml中，通常的词汇是我们“应用(apply)”函数而不是“调用(call)”它。</p>
+</div>
+<div class="paragraph">
+<p>请注意OCaml在是否写括号以及是否写空格方面是如何具有灵活性的。第一次学习OCaml的挑战之一是弄清楚何时真正需要括号。因此，如果您发现自己遇到语法错误的问题，一种策略是尝试添加一些括号。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_将代码储存在文件中">2.1.3. 将代码储存在文件中</h4>
+<div class="paragraph">
+<p>使用OCaml作为一种交互式计算器可能很有趣，但我们不会用这种方式编写大型程序。我们需要将代码存储在文件中。</p>
+</div>
+<div class="paragraph">
+<p>打开终端并使用文本编辑器创建一个名为 <code>hello.ml</code> 的文件。在文件中输入以下代码：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-ocaml hljs" data-lang="ocaml">let _ = print_endline "Hello world!"</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+没有双分号 <code>;;</code> 在该行代码的末尾。双分号严格用于 <code>utop</code> 中的交互式会话，以便 <code>utop</code> 知道您已完成输入一段代码。没有理由将它写在 <code>.ml</code> 文件中，我们认为这样做有点糟糕。
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>上面的 <code>let _ =</code> 意味着我们不关心在 <code>=</code> 的右侧代码的命名（因此是“空白”或下划线）。</p>
+</div>
+<div class="paragraph">
+<p>保存文件并返回到命令行。编译代码：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ ocamlc -o hello.byte hello.ml</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>编译器名为 <code>ocamlc</code> 。 <code>-o hello.byte</code> 选项表示将输出可执行文件命名为 <code>hello.byte</code> 。可执行文件包含已编译的OCaml字节码。此外，还生成了另外两个文件， <code>hello.cmi</code> 和 <code>hello.cmo</code> 。我们现在不需要关心这些文件。运行可执行文件：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ ./hello.byte</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>它应该打印 <code>Hello world!</code> 并终止。</p>
+</div>
+<div class="paragraph">
+<p>现在将打印的字符串更改为您选择的内容。保存文件，重新编译并重新运行。尝试使代码打印多行。</p>
+</div>
+<div class="paragraph">
+<p>如果您习惯于在 Eclipse 等 IDE 中工作，那么编辑器和命令行之间的这种编辑-编译-运行循环可能会感到陌生。别担心；它很快就会成为第二天性。</p>
+</div>
+<div class="paragraph">
+<p>直接运行编译器很好知道怎么做，但是在较大的项目中，我们希望使用 OCaml 构建系统来自动查找和链接库。让我们尝试使用它：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ ocamlbuild hello.byte</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>您将从该命令中收到错误消息。别担心；继续阅读这个练习。</p>
+</div>
+<div class="paragraph">
+<p>构建系统名为 <code>ocamlbuild</code> 。我们要求它构建的文件是编译后的字节码 <code>hello.byte</code> 。构建系统将自动确定 <code>hello.ml</code> 是所需字节码的源代码。</p>
+</div>
+<div class="paragraph">
+<p>然而，构建系统喜欢负责整个编译过程。当它看到直接调用编译器生成的剩余文件时，就像我们在前面的练习中所做的那样，它理所当然地感到紧张并拒绝继续。如果您查看错误消息，它表示已生成脚本以清除旧编译。运行该脚本，并删除编译后的文件：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ _build/sanitize.sh
+$ rm hello.byte</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>然后重新构建：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ ocamlbuild hello.byte</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>现在应该成功了。将创建一个目录 <code>_build</code> ；它包含所有已编译的代码。这是构建系统相对于直接运行编译器的一个好处：不是用一堆生成的文件污染源目录，而是在单独的目录中干净地创建它们。还有一个文件 <code>hello.byte</code> 被创建，它实际上只是一个指向该名称的“真实”文件的链接，该文件位于 <code>_build</code> 目录中。</p>
+</div>
+<div class="paragraph">
+<p>现在运行可执行文件：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ ./hello.byte</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>我们可以很容易的清理掉所有编译过的代码：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ ocamlbuild -clean</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>然后就会删除掉 <code>_build</code> 目录以及 <code>hello.byte</code> 链接，只剩下我们写的源代码。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_main函数呢">2.1.4. Main函数呢？</h4>
+<div class="paragraph">
+<p>与 C 或 Java 不同，OCaml 程序不需要有一个名为 main 的特殊函数来启动程序。通常的习惯用法是将文件中的最后一个定义作为主函数，启动要完成的任何计算。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_在_utop_中载入代码">2.1.5. 在 <code>utop</code> 中载入代码</h4>
+<div class="paragraph">
+<p>除了允许您定义函数之外， <code>utop</code> 还将接受不是 OCaml 代码的指令，而是告诉 <code>utop</code> 本身做某事。所有指令都以 <code>#</code> 字符开头。也许最常见的指令是 <code>#use</code> ，它将文件中的所有代码加载到 <code>utop</code> ，就像您已将该文件中的代码输入到 <code>utop</code> 一样。</p>
+</div>
+<div class="paragraph">
+<p>例如，假设您创建了一个名为 <code>mycode.ml</code> 的文件。</p>
+</div>
+<div class="paragraph">
+<p>在该文件中放入以下代码：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-ocaml hljs" data-lang="ocaml">let inc x = x + 1</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>启动 <code>utop</code> 。尝试输入以下表达式，并观察错误：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text"># inc 3;;
+Error: Unbound value inc
+Hint: Did you mean incr?</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>发生错误是因为 <code>utop</code> 还不知道有关名为 <code>inc</code> 的函数的任何信息。现在向 <code>utop</code> 发出以下指令：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text"># #use "mycode.ml";;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>请注意，上面的第一个 <code><mark></code> 字符表示对 <code>utop</code> 的提示符。第二个 <code></mark></code> 字符是您键入的字符，用于告诉 <code>utop</code> 您正在发出指令。如果没有该字符， <code>utop</code> 会认为您正在尝试应用名为 <code>use</code> 的函数。</p>
+</div>
+<div class="paragraph">
+<p>现在再试一次：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-text hljs" data-lang="text"># inc 3;;
+- : int = 4</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_utop_工作流">2.1.6. <code>utop</code> 工作流</h4>
+<div class="paragraph">
+<p>将 <code>utop</code> 与存储在文件中的代码一起使用时的最佳工作流程是：</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>在文件中编辑代码</p>
+</li>
+<li>
+<p>使用 <code>#use</code> 将代码加载到 <code>utop</code></p>
+</li>
+<li>
+<p>测试代码</p>
+</li>
+<li>
+<p>退出 <code>utop</code> 。注意：不要忽略这一步</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>假设您想修复代码中的错误：很可能不退出 <code>utop</code> ，编辑文件，然后将 <code>#use</code> 指令重新发出到同一个 <code>utop</code> 会话中。抵制这种诱惑。从同一会话中较早的 <code>#use</code> 指令加载的“陈旧代码”可能会导致令人惊讶的事情发生——无论如何，当您第一次学习该语言时，会感到惊讶。 <strong>所以在重新使用文件之前总是退出顶层。</strong></p>
+</div>
+</div>
+</div>
 </div>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-06-07 11:54:35 +0800
+Last updated 2021-06-07 16:35:37 +0800
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
