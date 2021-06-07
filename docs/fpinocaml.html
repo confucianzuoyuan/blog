@@ -446,7 +446,13 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#_简介">1. 简介</a>
 <ul class="sectlevel2">
 <li><a href="#_编程语言">1.1. 编程语言</a></li>
-<li><a href="#_ocaml">1.2. OCaml</a></li>
+<li><a href="#_ocaml">1.2. OCaml</a>
+<ul class="sectlevel3">
+<li><a href="#_ocaml的历史">1.2.1. OCaml的历史</a></li>
+<li><a href="#_工业界">1.2.2. 工业界</a></li>
+<li><a href="#_美丽的ocaml">1.2.3. 美丽的OCaml</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -458,9 +464,6 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div class="sectionbody">
 <div class="sect2">
 <h3 id="_编程语言">1.1. 编程语言</h3>
-<div class="paragraph">
-<p>A great general-purpose programming language&#8230;&#8203;</p>
-</div>
 <div class="paragraph">
 <p>一个伟大的通用编程语言：</p>
 </div>
@@ -530,7 +533,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <p>我们通过学习 OCaml 开始这门课程正是出于这个原因：它与你们大多数人在以前的编程课程中看到的观点截然不同。由于您已经学习了 1110 和 2110，您已经学会了如何编程。本课程让您有机会从头开始学习一门新语言，并在此过程中反思编程与语言编程之间的区别。</p>
 </div>
 <div class="paragraph">
-<p>&gt;“一种不会影响你对编程的思考方式的语言是不值得了解的。”————Alan J. Perlis (1922-1990)，图灵奖首位获得者</p>
+<p>&gt;“一种不会影响你对编程的思考方式的语言是不值得了解的。” ———— Alan J. Perlis (1922-1990)，图灵奖首位获得者</p>
 </div>
 <div class="paragraph">
 <p><strong>OCaml将改变您对编程的看法。</strong></p>
@@ -560,13 +563,73 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 </ul>
 </div>
+<div class="paragraph">
+<p>OCaml 是一种静态类型和类型安全的编程语言。静态类型语言在编译时检测类型错误，因此无法执行带有类型错误的程序。类型安全语言限制了可以对哪些类型的数据执行哪些类型的操作。在实践中，这可以防止许多愚蠢的错误（例如，将整数视为函数）并防止许多安全问题：计算机紧急响应小组（CERT，美国政府机构，负责网络安全）报告的入侵事件中超过一半是由于缓冲区溢出，这在类型安全的语言中是不可能的。</p>
+</div>
+<div class="paragraph">
+<p>一些语言，如 Scheme 和 Lisp，是类型安全的，但是是动态类型的。也就是说，类型错误仅在运行时被捕获。其他语言，如 C 和 C++，是静态类型的，但不是类型安全的。不能保证不会发生类型错误。</p>
+</div>
+<div class="paragraph">
+<p>从谱系上讲，OCaml 来自其祖父是 Lisp 的编程语言系列，其中包括 Clojure、F#、Haskell 和 Racket 等现代语言。函数式语言有一种令人惊讶的趋势来预测更多主流语言的未来。 Java 于 1995 年将垃圾收集带入主流； Lisp 在 1958 年就有了它。Java 直到 2004 年的第 5 版才有泛型； ML 系列在 1990 年就有了它。在过去的 10 年里，一流的函数和类型推断已经被纳入主流语言，如 Java、C# 和 C++，在函数式语言引入它们很久之后。通过学习函数式编程，您可以了解接下来可能会发生什么。谁知道它可能是什么？ （我打赌是模式匹配。）</p>
+</div>
+<div class="sect3">
+<h4 id="_ocaml的历史">1.2.1. OCaml的历史</h4>
+<div class="paragraph">
+<p>70 年代末和 80 年代初，苏格兰爱丁堡计算机科学实验室的 Robin Milner 和其他人正在研究定理证明器。传统上，定理证明器是用 Lisp 等语言实现的。米尔纳不断遇到这样一个问题，即定理证明器有时会将不正确的“证明”（即错误证明）放在一起并声称它们是有效的。所以他试图开发一种只允许你构建有效证明的语言。 ML，代表“元语言”，是这项工作的结果。 ML 的类型系统经过精心构建，因此您只能在该语言中构建有效的证明。然后将定理证明器编写为构建证明的程序。最终，这门“经典元语言”演变成了一种成熟的编程语言。</p>
+</div>
+<div class="paragraph">
+<p>在 80 年代初期，ML 社区出现了分裂，一方面是法国人，另一方面是英国和美国。法国人继续开发 CAML，后来开发了Objective CAML (OCaml)，而英国人和美国人开发了Standard ML语言。这两种方言非常相似。微软在 2005 年推出了自己的 OCaml 变体，称为 F#。</p>
+</div>
+<div class="paragraph">
+<p>米尔纳在 1991 年获得了图灵奖，这在很大程度上是因为他在ML方面的工作。 ACM网站为他的颁奖词中写到：</p>
+</div>
+<div class="paragraph">
+<p>&gt;ML语言遥遥领先于那个时代。它建立在简洁明了的数学思想之上，经过梳理，可以独立研究，并且相对容易地重新混合和重复使用。 ML 影响了许多实用语言，包括 Java、Scala 和 Microsoft 的 F#。事实上，任何认真的语言设计师都不应该忽视这个优秀设计的例子。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_工业界">1.2.2. 工业界</h4>
+<div class="paragraph">
+<p>OCaml和其他函数式语言远不及C、C++和Java流行。OCaml的真正优势在于编程语言方面的应用（即编译器、分析器、验证器、证明器等）。这并不奇怪，因为OCaml是从定理证明领域演变而来的。</p>
+</div>
+<div class="paragraph">
+<p>这并不是说函数式语言不在工业中使用。有许多行业项目使用OCaml和Haskell以及其他语言。康奈尔大学的Yaron Minsky (PhD '02)写了一篇关于在金融行业使用OCaml的论文（必须从康奈尔大学的网络内部访问该链接）。它解释了OCaml的特性如何使其成为快速构建可运行的复杂软件的理想选择。</p>
+</div>
+<div class="paragraph">
+<p>但最终这门课程是关于你作为程序员的教育，而不是关于给你找工作。</p>
+</div>
+<div class="paragraph">
+<p>&gt;“教育就是忘记在学校学到的一切之后剩下的东西。” ———— 爱因斯坦</p>
+</div>
+<div class="paragraph">
+<p>OCaml在阐明和简化函数式编程的本质方面做得很好，这是其他融合函数式和命令式编程（如Scala）或将函数式编程发挥到极致（如Haskell）的语言所没有的。学习了OCaml后，您将有能力自学任何其他函数式（受启发）语言。</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_美丽的ocaml">1.2.3. 美丽的OCaml</h4>
+<div class="paragraph">
+<p>一个非科学的、主观的研究OCaml的理由，我将作为我自己的观点提出：OCaml很漂亮。</p>
+</div>
+<div class="paragraph">
+<p>&gt;“美丽是我们的事业” ———— 来自纪念Edsger W. Dijkstra的一本书的书名</p>
+</div>
+<div class="paragraph">
+<p>（Dijkstra于1972年因“对编程的基本贡献”而获得图灵奖。David Gries是该书的编辑。）</p>
+</div>
+<div class="paragraph">
+<p>OCaml优雅、简单、美丽。您编写的代码可以时尚而有品位。起初，这可能并不明显。毕竟，您正在学习一门新语言——您不会期望在SANSK 1131课程的第一天欣赏梵文诗歌。事实上，当您努力用新语言表达自己时，您可能会感到沮丧一段时间。所以给它一些时间。我已经记不清有多少学生在未来的学期回来告诉我，在3110之后他们重新使用其他语言写作后感觉有多“丑陋”。</p>
+</div>
+<div class="paragraph">
+<p>审美很重要。代码不仅仅是为了让机器执行而编写的。它也是为了与人类交流而编写的。优雅的代码更易于阅读和维护。当然，写起来不一定更容易。</p>
+</div>
+</div>
 </div>
 </div>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-06-07 10:18:21 +0800
+Last updated 2021-06-07 10:58:41 +0800
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
