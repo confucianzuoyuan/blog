@@ -453,6 +453,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <li><a href="#_美丽的ocaml">1.2.3. 美丽的OCaml</a></li>
 </ul>
 </li>
+<li><a href="#_可变性">1.3. 可变性</a></li>
 </ul>
 </li>
 </ul>
@@ -660,12 +661,30 @@ ML语言遥遥领先于那个时代。它建立在简洁明了的数学思想之
 </div>
 </div>
 </div>
+<div class="sect2">
+<h3 id="_可变性">1.3. 可变性</h3>
+<div class="paragraph">
+<p>命令式编程语言（例如C和Java）涉及在整个执行过程中都会发生变化的可变状态。命令通过破坏性地改变该状态来指定如何计算。除了产生返回值之外，过程（或方法）可能具有更新状态的副作用。</p>
+</div>
+<div class="paragraph">
+<p><strong>可变性的幻想</strong> 让我们觉得程序很容易推理：机器先做这个，然后做这个，等等。</p>
+</div>
+<div class="paragraph">
+<p><strong>可变性的现实</strong> 是，虽然机器擅长复杂的状态操作，但人类不擅长理解它。之所以如此，其本质是可变性破坏了引用透明性：在不影响计算结果的情况下用其值替换表达式的能力。在数学中，如果 \(f(x)=y\) ，那么您可以在任何看到 \(f(x)\) 的地方替换成 \(y\) 。在命令式语言中，就不能这样了： \(f\) 可能有副作用，因此在时间 \(t\) 计算 \(f(x)\) 可能会导致与时间 \(t'\) 不同的值。</p>
+</div>
+<div class="paragraph">
+<p>人们很容易相信机器可以操纵一种状态，并且机器一次只做一件事。计算机系统不遗余力地试图提供这种错觉。但这只是：一种错觉。实际上，有许多状态分布在线程、内核、处理器和联网计算机上。机器同时做很多事情。可变性使得关于分布式状态和并发执行的推理变得非常困难。</p>
+</div>
+<div class="paragraph">
+<p>然而， <strong>不可变性</strong> 将程序员从这些担忧中解放出来。它提供了构建正确和并发程序的强大方法。OCaml主要是一种不可变语言，就像大多数函数式语言一样。它确实支持具有可变状态的命令式编程，但是我们在课程开始大约两个月后才会使用这些功能——部分原因是因为我们根本不需要它们，部分原因是为了让你从“过程式编程”中退出来，否则无法摆脱对可变性的依赖。这种不受可变性影响的自由是3110课程可以为您带来的最大视角变化之一。</p>
+</div>
+</div>
 </div>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-06-07 11:02:59 +0800
+Last updated 2021-06-07 11:54:35 +0800
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
@@ -675,5 +694,29 @@ if (!hljs.initHighlighting.called) {
   ;[].slice.call(document.querySelectorAll('pre.highlight > code')).forEach(function (el) { hljs.highlightBlock(el) })
 }
 </script>
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  messageStyle: "none",
+  tex2jax: {
+    inlineMath: [["\\(", "\\)"]],
+    displayMath: [["\\[", "\\]"]],
+    ignoreClass: "nostem|nolatexmath"
+  },
+  asciimath2jax: {
+    delimiters: [["\\$", "\\$"]],
+    ignoreClass: "nostem|noasciimath"
+  },
+  TeX: { equationNumbers: { autoNumber: "none" } }
+})
+MathJax.Hub.Register.StartupHook("AsciiMath Jax Ready", function () {
+  MathJax.InputJax.AsciiMath.postfilterHooks.Add(function (data, node) {
+    if ((node = data.script.parentNode) && (node = node.parentNode) && node.classList.contains("stemblock")) {
+      data.math.root.display = "block"
+    }
+    return data
+  })
+})
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js?config=TeX-MML-AM_HTMLorMML"></script>
 </body>
 </html>
