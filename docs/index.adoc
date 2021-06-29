@@ -3,5 +3,9 @@
 
 * link:flink-tutorial.html[Flink教程]
 * link:build-lisp.html[使用C语言实现Lisp解释器]
-* link:fpinocaml.html[OCaml函数式编程]
+* link:ctfp.html[写给程序员看的范畴论]
+* link:WriteSchemeInHaskellV1.html[使用Haskell在48小时内写一个Scheme解释器]
 * https://github.com/confucianzuoyuan/acwj[从零写一个可以自举的C语言编译器]
+* https://confucianzuoyuan.github.io/craftinginterpreters/[自制解释器]
+* 使用Haskell实现一个C语言子集的编译器
+* 使用Haskell实现Hindley-Milner类型推导算法

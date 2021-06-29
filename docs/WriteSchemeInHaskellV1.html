@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 2.0.13">
-<title>左元的编程教程</title>
+<title>使用Haskell编写Scheme解释器</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <style>
 /* Asciidoctor default stylesheet | MIT License | https://asciidoctor.org */
@@ -434,40 +434,223 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 #footer-text{color:rgba(0,0,0,.6);font-size:.9em}}
 @media amzn-kf8{#header,#content,#footnotes,#footer{padding:0}}
 </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/styles/github.min.css">
 </head>
-<body class="article">
+<body class="article toc2 toc-left">
 <div id="header">
-<h1>左元的编程教程</h1>
-</div>
-<div id="content">
-<div class="ulist">
-<ul>
-<li>
-<p><a href="flink-tutorial.html">Flink教程</a></p>
-</li>
-<li>
-<p><a href="build-lisp.html">使用C语言实现Lisp解释器</a></p>
-</li>
-<li>
-<p><a href="ctfp.html">写给程序员看的范畴论</a></p>
-</li>
-<li>
-<p><a href="WriteSchemeInHaskellV1.html">使用Haskell在48小时内写一个Scheme解释器</a></p>
-</li>
-<li>
-<p><a href="https://github.com/confucianzuoyuan/acwj">从零写一个可以自举的C语言编译器</a></p>
-</li>
-<li>
-<p><a href="https://confucianzuoyuan.github.io/craftinginterpreters/">自制解释器</a></p>
-</li>
-<li>
-<p>使用Haskell实现一个C语言子集的编译器</p>
-</li>
-<li>
-<p>使用Haskell实现Hindley-Milner类型推导算法</p>
-</li>
+<h1>使用Haskell编写Scheme解释器</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#_概论">1. 概论</a></li>
+<li><a href="#_第一步编译然后运行程序">2. 第一步：编译然后运行程序</a></li>
 </ul>
 </div>
 </div>
+<div id="content">
+<div class="sect1">
+<h2 id="_概论">1. 概论</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>大部分网路上的Haskell教程会使用一种与语言参考手册类似的方式来进行教学。他们会告诉你语法和一些语言结构，然后让你在交互式命令行里写一些简单的函数。而如何用函数式的方式来写一个有用的程序的问题却被留在了最后面或是直接被忽略了。</p>
+</div>
+<div class="paragraph">
+<p>而我们会用一种完全不同的方式。你会从使用和解析命令行参数开始，然后写一个能够实现R5RS Scheme标准的像模像样的子集的Scheme解释器。你将会学习到Haskell的I/O，可变状态，动态类型，错误处理以及其他相关的解析功能。而当你完成这个教程的时候，你就会对Haskell和Scheme相当熟悉了。</p>
+</div>
+<div class="paragraph">
+<p>这个教程主要面向两大读者群：</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>已经掌握Lisp或Scheme并且想要学习Haskell的人</p>
+</li>
+<li>
+<p>虽然不懂任何编程语言，但是有大量背景知识并且对计算机非常熟悉的人</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>第二种读者会发现这个任务有些困难，因为在这里省略了很多Scheme以及其他通用的编程概念从而把教程的重点放在Haskell上面。SICP或者The Little Schemer之类的书会对你很有帮助。</p>
+</div>
+<div class="paragraph">
+<p>而那些使用像C，Java或者Python这样的基于过程或面向对象语言的用户需要注意了：你需要忘掉大部分你已经熟悉的编程知识。Haskell与上述的语言完全不同，并且要求你用一种完全不一样的方式来进行思考。最好以白板的状态来开始这个教程并且不要尝试将Haskell与命令式语言进行比较，因为很多你以为你熟悉的概念（classes，functions，return）在Haskell里有完全不同的含义。</p>
+</div>
+<div class="paragraph">
+<p>由于每一课都建立在之前代码的基础上，所以你最好按顺序来学习课程。</p>
+</div>
+<div class="paragraph">
+<p>这个教程假定你用ghc作为你的Haskell编译器。代码在Hugs或者其他编译器里或许也能运行但并没有被完全测试过，也许你还需要下载一些额外的库来支持他们。</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_第一步编译然后运行程序">2. 第一步：编译然后运行程序</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>首先，你需要安装一个ghc。在Linux上，它常常被预先安装好了或者能够通过apt-get或者yum命令来轻松搞定。你也可以从官网直接下载它。不过除非你确信你想从源码去编译它，否则下载一个二进制包就可以了。像安装其他的软件包一样下载和安装它既可。这个教程是在Linux下完成的，但是只要你会使用相关的命令行操作，它在Windows或是Mac环境下也一样能工作。</p>
+</div>
+<div class="paragraph">
+<p>对UNIX或者Windows Emacs用户来说，这里有一个很棒的Emacs mode，包括了语法高亮和自动缩进的功能。Windows用户则能够直接使用记事本或者其他文本编辑器：Haskell的语法对记事本相当友好，尽管你仍要小心处理缩进。Eclipse用户建议使用eclipsefp插件。</p>
+</div>
+<div class="paragraph">
+<p>现在，是时候写你的第一个Haskell程序了。这个程序将通过命令行读入一个名字然后输出一个问候语句。建立一个以 ".hs” 结尾的文件并输入下列代码。当心缩进，否则你的程序可能没法通过编译。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-haskell hljs" data-lang="haskell">module Main where
+import System.Environment
+
+main :: IO ()
+main = do args &lt;- getArgs
+          putStrLn ("Hello, " ++ args !! 0)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>我们来看下这段代码。前两行表示我们讲创建一个名叫Main的模块，并且导入了System这个模块。所有的Haskell程序都会从Main模块里的一个叫做main函数的地方开始运行。你可以在这个模块中导入其他的模块，但是如果没有了它，编译器就无法生成可执行文件供用户运行。此外Haskell是大小写的敏感的：模块名称需要是大写开头的，而函数声明则必须是非大写开头的。</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">main </dt>
+<dd>
+<p>IO ()这行是函数的类型声明：它表示main函数的类型是IO()，是一个返回Unit类型()的IO操作。一个Unit类型仅会包含一个值，而()，它表示什么也没有。类型声明在Haskell里是可选的：编译器能够自动的识别它们，当你的声明和编译器自动识别发生冲突的时候它则会报错。在这个教程中，为了更清晰的说明，所有的类型都是显式声明的。而你在家里跟着做的时候，你可能更愿意选择忽略，因为在编写这个程序的时候其实并不太需要去在意它们。</p>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>IO类型是Monad类型类的一个实例，Monad是一种抽象的概念，如果满足以下这两个条件，那我们就会说这样的值是Monad：</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>这个值包含了一些特定类型的附加信息；</p>
+</li>
+<li>
+<p>大多数函数不需要去关心这些附加的信息。</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>在这个例子里，</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>这个附加的信息就是将被执行的IO操作；</p>
+</li>
+<li>
+<p>而这个附加信息的值是不存在的，表示成 <code>()</code> 。</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p><code>IO[String]</code> 和 <code>IO()</code> 都同样属于 <code>IO Monad</code> 类型，但它们有着不同的基本类型。它们作用于 <code>(</code> 或是传递 <code>)</code> 不同类型的值， <code>[String]</code> 和 <code>()</code> 。</p>
+</div>
+<div class="paragraph">
+<p>那些包含了附加信息的值则被称作“Monadic”。</p>
+</div>
+<div class="paragraph">
+<p>Monadic值常被称作“操作”，因为最容易的思考IO Monad用途的方法就是把它当做一系列可能会影响外界世界的动作。这一系列动作会传递一些基础的数值，然后在这个过程中每个动作都会对这些值进行影响。</p>
+</div>
+<div class="paragraph">
+<p>Haskell是一个函数式的语言：与给出计算机一系列指令从而让它执行不同，你需要给Haskell一系列定义来告诉它每一个函数来如何处理。这些定义会将各种动作和函数组合在一起。而编译器会识别出将它们组织在一起的执行方式。</p>
+</div>
+<div class="paragraph">
+<p>要写出这样一个定义，你首先需要建立一个等式。等式的左边是一个名称，可能还会带有若干个与变量绑定的模式(后面会解释)。右边的话，会给出一些由其他定义组合而成的式子，从而告诉计算机如何遇到该定义时如何进行计算。这些等式就和一般的代数表达式一样：你总是可以在程序中用等式右边的部分来替代左边的名字，并且得到与之前相同的结果。这种行为被称作“引用透明”，而这种性质使得Haskell代码比其它的语言更加易于理解。</p>
+</div>
+<div class="paragraph">
+<p>那我们应该怎么定义我们的main函数呢？我们知道它必须是一个能够从命令行读入参数，然后从打印出一些输出，最终返回()（空值）的IO()操作。</p>
+</div>
+<div class="paragraph">
+<p>这里有两种方法创建一个IO操作：</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>使用return函数提升一个普通值进入IO Monad。</p>
+</li>
+<li>
+<p>连接两个已经存在的IO操作。</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>因为我们接下来要做两件事情，所以我们选择第二种方法。我们通过内建函数getArgs读入命令行参数并把它们存入一个字符串列表。而内建函数putStrLn则能够读入一个字符串然后将它输出到终端。</p>
+</div>
+<div class="paragraph">
+<p>我们使用一个do代码块来连接这两个操作。一个do代码块包括很多行，所有的行按照第一个非空白字符在do后面排列，并且每行都可能是如下两种形式之一：</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>name &#8592; action1</p>
+</li>
+<li>
+<p>action2</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>第一种形式将action1的结果和name绑定，从而你可以在下一个操作中使用它。例如，如果有action1的类型是IO[String](一个会返回一个字符串列表的IO操作，就和getArgs一样)，那name就会在接下来的一系列操作里和这个返回的字符串列表通过绑定操作符&gt;&gt;=绑定在一起。第二种情况仅仅执行这个action2，并通过&gt;&gt;操作符同下一行连结在一起。绑定操作符在处理不同Monad的情况下有不同的语义：在IO Monad中，它会连续执行所有的操作，然后对外部世界产生这些操作带来的副作用。由于这个绑定符号的语义依赖你具体使用的Monad类型，所以你并不能在同一个do代码块里把不同类型的Monad类型的操作糅杂在一起---在这里只有IO Monad是可用的（在同一个管道中）。</p>
+</div>
+<div class="paragraph">
+<p>当然，这些操作可能自己会调用其他函数或是复杂的表达式，然后继续传递它们的计算结果（通过调用return或是其他最终调用了return的函数）。</p>
+</div>
+<div class="paragraph">
+<p>在这个例子里，我们首先取出参数列表中的第一个元素(args !! 0)，然后把它拼接到字符串"Hello,"的后面（"Hello," ++），最后把结果传给putStrLn。</p>
+</div>
+<div class="paragraph">
+<p>就这样，一个包含了之前所说的读取和打印操作的新的操作就这样创建完毕并存到了main这个返回值为IO()的标识符中。这样Haskell系统就能够识别并运行它了。</p>
+</div>
+<div class="paragraph">
+<p>Haskell中，字符串即是字符的列表形式，所以你可以对它使用任何的列表函数或是操作符。以下是一个完整的标准操作符列表和它们对应的优先级：</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./haskell-cheatsheet.png" alt="haskell cheatsheet">
+</div>
+</div>
+<div class="paragraph">
+<p>接下来编译和运行这个程序：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ ghc -o hello_you --make listing2.hs
+$ ./hello_you Jonathan
+Hello, Jonathan</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><strong>习题</strong></p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>修改程序，让它能够从命令行读取两个参数然后打印出一条包含它们的信息。</p>
+</li>
+<li>
+<p>修改程序，让它能够使用输入的参数进行简单的四则运算，建议使用read来讲字符串转化成数字类型，并用show来进行相反的操作。对各种不同的动作都操练一番。</p>
+</li>
+<li>
+<p>getLine是一个从命令行读取一行输入信息然后返回字符串的IO操作。修改程序，让它能够提示需要一个名字并读取这个名字而不是像之前那样直接从命令行传入参数，最后打印它。</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated 2021-06-29 21:17:19 +0800
+</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
+<script>
+if (!hljs.initHighlighting.called) {
+  hljs.initHighlighting.called = true
+  ;[].slice.call(document.querySelectorAll('pre.highlight > code')).forEach(function (el) { hljs.highlightBlock(el) })
+}
+</script>
 </body>
 </html>
