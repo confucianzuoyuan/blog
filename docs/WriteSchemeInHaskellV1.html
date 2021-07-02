@@ -435,7 +435,82 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 @media amzn-kf8{#header,#content,#footnotes,#footer{padding:0}}
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/styles/github.min.css">
+<style>
+pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+pre.pygments .hll { background-color: #ffffcc }
+pre.pygments { background: #f8f8f8; }
+pre.pygments .tok-c { color: #408080; font-style: italic } /* Comment */
+pre.pygments .tok-err { border: 1px solid #FF0000 } /* Error */
+pre.pygments .tok-k { color: #008000; font-weight: bold } /* Keyword */
+pre.pygments .tok-o { color: #666666 } /* Operator */
+pre.pygments .tok-ch { color: #408080; font-style: italic } /* Comment.Hashbang */
+pre.pygments .tok-cm { color: #408080; font-style: italic } /* Comment.Multiline */
+pre.pygments .tok-cp { color: #BC7A00 } /* Comment.Preproc */
+pre.pygments .tok-cpf { color: #408080; font-style: italic } /* Comment.PreprocFile */
+pre.pygments .tok-c1 { color: #408080; font-style: italic } /* Comment.Single */
+pre.pygments .tok-cs { color: #408080; font-style: italic } /* Comment.Special */
+pre.pygments .tok-gd { color: #A00000 } /* Generic.Deleted */
+pre.pygments .tok-ge { font-style: italic } /* Generic.Emph */
+pre.pygments .tok-gr { color: #FF0000 } /* Generic.Error */
+pre.pygments .tok-gh { color: #000080; font-weight: bold } /* Generic.Heading */
+pre.pygments .tok-gi { color: #00A000 } /* Generic.Inserted */
+pre.pygments .tok-go { color: #888888 } /* Generic.Output */
+pre.pygments .tok-gp { color: #000080; font-weight: bold } /* Generic.Prompt */
+pre.pygments .tok-gs { font-weight: bold } /* Generic.Strong */
+pre.pygments .tok-gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+pre.pygments .tok-gt { color: #0044DD } /* Generic.Traceback */
+pre.pygments .tok-kc { color: #008000; font-weight: bold } /* Keyword.Constant */
+pre.pygments .tok-kd { color: #008000; font-weight: bold } /* Keyword.Declaration */
+pre.pygments .tok-kn { color: #008000; font-weight: bold } /* Keyword.Namespace */
+pre.pygments .tok-kp { color: #008000 } /* Keyword.Pseudo */
+pre.pygments .tok-kr { color: #008000; font-weight: bold } /* Keyword.Reserved */
+pre.pygments .tok-kt { color: #B00040 } /* Keyword.Type */
+pre.pygments .tok-m { color: #666666 } /* Literal.Number */
+pre.pygments .tok-s { color: #BA2121 } /* Literal.String */
+pre.pygments .tok-na { color: #7D9029 } /* Name.Attribute */
+pre.pygments .tok-nb { color: #008000 } /* Name.Builtin */
+pre.pygments .tok-nc { color: #0000FF; font-weight: bold } /* Name.Class */
+pre.pygments .tok-no { color: #880000 } /* Name.Constant */
+pre.pygments .tok-nd { color: #AA22FF } /* Name.Decorator */
+pre.pygments .tok-ni { color: #999999; font-weight: bold } /* Name.Entity */
+pre.pygments .tok-ne { color: #D2413A; font-weight: bold } /* Name.Exception */
+pre.pygments .tok-nf { color: #0000FF } /* Name.Function */
+pre.pygments .tok-nl { color: #A0A000 } /* Name.Label */
+pre.pygments .tok-nn { color: #0000FF; font-weight: bold } /* Name.Namespace */
+pre.pygments .tok-nt { color: #008000; font-weight: bold } /* Name.Tag */
+pre.pygments .tok-nv { color: #19177C } /* Name.Variable */
+pre.pygments .tok-ow { color: #AA22FF; font-weight: bold } /* Operator.Word */
+pre.pygments .tok-w { color: #bbbbbb } /* Text.Whitespace */
+pre.pygments .tok-mb { color: #666666 } /* Literal.Number.Bin */
+pre.pygments .tok-mf { color: #666666 } /* Literal.Number.Float */
+pre.pygments .tok-mh { color: #666666 } /* Literal.Number.Hex */
+pre.pygments .tok-mi { color: #666666 } /* Literal.Number.Integer */
+pre.pygments .tok-mo { color: #666666 } /* Literal.Number.Oct */
+pre.pygments .tok-sa { color: #BA2121 } /* Literal.String.Affix */
+pre.pygments .tok-sb { color: #BA2121 } /* Literal.String.Backtick */
+pre.pygments .tok-sc { color: #BA2121 } /* Literal.String.Char */
+pre.pygments .tok-dl { color: #BA2121 } /* Literal.String.Delimiter */
+pre.pygments .tok-sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
+pre.pygments .tok-s2 { color: #BA2121 } /* Literal.String.Double */
+pre.pygments .tok-se { color: #BB6622; font-weight: bold } /* Literal.String.Escape */
+pre.pygments .tok-sh { color: #BA2121 } /* Literal.String.Heredoc */
+pre.pygments .tok-si { color: #BB6688; font-weight: bold } /* Literal.String.Interpol */
+pre.pygments .tok-sx { color: #008000 } /* Literal.String.Other */
+pre.pygments .tok-sr { color: #BB6688 } /* Literal.String.Regex */
+pre.pygments .tok-s1 { color: #BA2121 } /* Literal.String.Single */
+pre.pygments .tok-ss { color: #19177C } /* Literal.String.Symbol */
+pre.pygments .tok-bp { color: #008000 } /* Name.Builtin.Pseudo */
+pre.pygments .tok-fm { color: #0000FF } /* Name.Function.Magic */
+pre.pygments .tok-vc { color: #19177C } /* Name.Variable.Class */
+pre.pygments .tok-vg { color: #19177C } /* Name.Variable.Global */
+pre.pygments .tok-vi { color: #19177C } /* Name.Variable.Instance */
+pre.pygments .tok-vm { color: #19177C } /* Name.Variable.Magic */
+pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
+</style>
 </head>
 <body class="article toc2 toc-left">
 <div id="header">
@@ -445,6 +520,16 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <ul class="sectlevel1">
 <li><a href="#_概论">1. 概论</a></li>
 <li><a href="#_第一步编译然后运行程序">2. 第一步：编译然后运行程序</a></li>
+<li><a href="#_解析">3. 解析</a>
+<ul class="sectlevel2">
+<li><a href="#_一个简单的解析器">3.1. 一个简单的解析器</a></li>
+<li><a href="#_空格">3.2. 空格</a></li>
+<li><a href="#_返回值">3.3. 返回值</a></li>
+<li><a href="#_习题">3.4. 习题</a></li>
+<li><a href="#_递归解析列表和引号">3.5. 递归解析：列表和引号</a></li>
+<li><a href="#_习题_2">3.6. 习题</a></li>
+</ul>
+</li>
 </ul>
 </div>
 </div>
@@ -499,12 +584,12 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-haskell hljs" data-lang="haskell">module Main where
-import System.Environment
+<pre class="pygments highlight"><code data-lang="haskell"><span></span><span class="tok-kr">module</span> <span class="tok-nn">Main</span> <span class="tok-kr">where</span>
+<span class="tok-kr">import</span> <span class="tok-nn">System.Environment</span>
 
-main :: IO ()
-main = do args &lt;- getArgs
-          putStrLn ("Hello, " ++ args !! 0)</code></pre>
+<span class="tok-nf">main</span> <span class="tok-ow">::</span> <span class="tok-kt">IO</span> <span class="tok-nb">()</span>
+<span class="tok-nf">main</span> <span class="tok-ow">=</span> <span class="tok-kr">do</span> <span class="tok-n">args</span> <span class="tok-ow">&lt;-</span> <span class="tok-n">getArgs</span>
+          <span class="tok-n">putStrLn</span> <span class="tok-p">(</span><span class="tok-s">&quot;Hello, &quot;</span> <span class="tok-o">++</span> <span class="tok-n">args</span> <span class="tok-o">!!</span> <span class="tok-mi">0</span><span class="tok-p">)</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -616,7 +701,7 @@ main = do args &lt;- getArgs
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-bash hljs" data-lang="bash">$ ghc -o hello_you --make listing2.hs
+<pre class="pygments highlight"><code data-lang="bash"><span></span>$ ghc -o hello_you --make listing2.hs
 $ ./hello_you Jonathan
 Hello, Jonathan</code></pre>
 </div>
@@ -639,18 +724,454 @@ Hello, Jonathan</code></pre>
 </div>
 </div>
 </div>
+<div class="sect1">
+<h2 id="_解析">3. 解析</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_一个简单的解析器">3.1. 一个简单的解析器</h3>
+<div class="paragraph">
+<p>现在，让我们试着写一个非常简单的解析器。我们会用到Parsec库。（如果你还没有安装的话，可以通过Haskell平台下载或者直接使用它的源代码。根据你的编译器的版本，选择对应的代码包并编译它。在Ubuntu系统上的话，直接运行命令sudo apt-get install cabal-install;cabal update;cabal install parsec来安装）</p>
+</div>
+<div class="paragraph">
+<p>添加一行到导入模块的部分：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="haskell"><span></span><span class="tok-kr">import</span> <span class="tok-nn">Text.ParserCombinators.Parsec</span> <span class="tok-k">hiding</span> <span class="tok-p">(</span><span class="tok-nf">spaces</span><span class="tok-p">)</span>
+<span class="tok-kr">import</span>  <span class="tok-nn">System.Environment</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>这样我们就可以使用Parsec库中的函数了，除了一个等下会和我们自己定义的函数名冲突的spaces函数。</p>
+</div>
+<div class="paragraph">
+<p>现在让我们定义一个能够识别出Scheme中允许的符号的解析器：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="haskell"><span></span><span class="tok-nf">symbol</span> <span class="tok-ow">::</span> <span class="tok-kt">Parser</span> <span class="tok-kt">Char</span>
+<span class="tok-nf">symbol</span> <span class="tok-ow">=</span> <span class="tok-n">oneOf</span> <span class="tok-s">&quot;!#$%&amp;|*+-/:&lt;=&gt;?@^_~&quot;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>这又是一个Monad的例子：在这里，被隐藏的“额外信息”包括在输入流中的位置，回溯记录以及First和Follow集等。Parsec会替我们解决这个问题。而我们只需要去调用Parsec库中的函数oneOf，它就会替我们将传递给它的字符串中的任意一个识别出来。Parsec库提供了一些内置的解析器：例如letter和digit函数。正如你将看到的，你可以将基本的函数组合成更加复杂的解析器。</p>
+</div>
+<div class="paragraph">
+<p>让我们定义一个调用解析器并且处理可能的错误的函数：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="haskell"><span></span><span class="tok-nf">readExpr</span> <span class="tok-ow">::</span> <span class="tok-kt">String</span> <span class="tok-ow">-&gt;</span> <span class="tok-kt">String</span>
+<span class="tok-nf">readExpr</span> <span class="tok-n">input</span> <span class="tok-ow">=</span> <span class="tok-kr">case</span> <span class="tok-n">parse</span> <span class="tok-n">symbol</span> <span class="tok-s">&quot;lisp&quot;</span> <span class="tok-n">input</span> <span class="tok-kr">of</span>
+    <span class="tok-kt">Left</span> <span class="tok-n">err</span> <span class="tok-ow">-&gt;</span> <span class="tok-s">&quot;No match: &quot;</span> <span class="tok-o">++</span> <span class="tok-n">show</span> <span class="tok-n">err</span>
+    <span class="tok-kt">Right</span> <span class="tok-n">val</span> <span class="tok-ow">-&gt;</span> <span class="tok-s">&quot;Found value&quot;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>正如你从类型签名看到的一样，readExpr是一个将String转化成String的函数（&#8594;）。我们把传入的参数命名为input，然后把它和我们之前定义的名叫symbol的解析器一起传递给parse函数。传递的第二个参数是我们给输入定义的名称，这会在显示错误信息的时候用到。parse会返回一个被解析的返回值或者一个错误，因此我们是需要处理错误情况的。根据标准的Haskell编程规约，Parsec返回一个Either类型，用他得Left构造器表示错误并且用Right构造器来表示普通的值。</p>
+</div>
+<div class="paragraph">
+<p>我们使用一个case&#8230;&#8203;of的语句来对parse的各种可能的返回值进行匹配。如果我们得到一个Left值（错误），那我们就把这个error绑定给变量err然后在开头加上字符串“No match ”然后返回。如果我们得到一个Right值，我们把它绑定给val，然后无视它并返回一个“Found value”字符串。</p>
+</div>
+<div class="paragraph">
+<p>我们可以看到使用case&#8230;&#8203;of来进行模式匹配的例子，之后我们会继续看到很多类似的做法的。</p>
+</div>
+<div class="paragraph">
+<p>最后，我们需要修改我们的main函数来调用readExpr并且打印出结果：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="haskell"><span></span><span class="tok-nf">main</span> <span class="tok-ow">::</span> <span class="tok-kt">IO</span> <span class="tok-nb">()</span>
+<span class="tok-nf">main</span> <span class="tok-ow">=</span> <span class="tok-kr">do</span>
+    <span class="tok-p">(</span><span class="tok-n">expr</span><span class="tok-kt">:</span><span class="tok-kr">_</span><span class="tok-p">)</span> <span class="tok-ow">&lt;-</span> <span class="tok-n">getArgs</span>
+    <span class="tok-n">putStrLn</span> <span class="tok-p">(</span><span class="tok-n">readExpr</span> <span class="tok-n">expr</span><span class="tok-p">)</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>为了编译并运行程序，需要在命令行指定&#8212;&#8203;make参数，否则就会爆出链接错误。举个栗子：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="bash"><span></span>$ ghc --make -o simple_parser listing3.1.hs
+$ ./simple_parser $
+Found value
+$ ./simple_parser a
+No match: <span class="tok-s2">&quot;lisp&quot;</span> <span class="tok-o">(</span>line <span class="tok-m">1</span>, column <span class="tok-m">1</span><span class="tok-o">)</span>:
+unexpected <span class="tok-s2">&quot;a&quot;</span></code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_空格">3.2. 空格</h3>
+<div class="paragraph">
+<p>接下来，我们会对我们的解析器添加一系列改动来使它能够渐渐识别出我们给出的更加复杂的表达式。现在的解析器在遇到空白的时候就会卡住了：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="bash"><span></span>$ ./simple_parser <span class="tok-s2">&quot;   %&quot;</span>
+No match: <span class="tok-s2">&quot;lisp&quot;</span> <span class="tok-o">(</span>line <span class="tok-m">1</span>, column <span class="tok-m">1</span><span class="tok-o">)</span>:
+unexpected <span class="tok-s2">&quot; &quot;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>让我们来修正这个问题，并且忽略掉输入中的空格符。</p>
+</div>
+<div class="paragraph">
+<p>首先，我们定义一个能够辨认出任意数量空格的解析器。顺便，这也是我们之前在导入Parsec模块的时候添加了hiding (spaces)的原因：模块中已经有一个spaces
+函数了，但却不大符合我们的要求。（不过有一个叫做lexeme的解析器完全符合我们的要求，不过出于教学目的，我们暂时先无视它。）</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="haskell"><span></span><span class="tok-nf">spaces</span> <span class="tok-ow">::</span> <span class="tok-kt">Parser</span> <span class="tok-nb">()</span>
+<span class="tok-nf">spaces</span> <span class="tok-ow">=</span> <span class="tok-n">skipMany1</span> <span class="tok-n">space</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>就像函数一样，操作也能传递给其他操作。在这里我们把Parser操作space 传递给Parser操作skipMany1，来获取到一个能够解析一个或者多个空格的解析器。</p>
+</div>
+<div class="paragraph">
+<p>现在，我们来编辑一下我们的解析函数：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="haskell"><span></span><span class="tok-nf">readExpr</span> <span class="tok-n">input</span> <span class="tok-ow">=</span> <span class="tok-kr">case</span> <span class="tok-n">parse</span> <span class="tok-p">(</span><span class="tok-n">spaces</span> <span class="tok-o">&gt;&gt;</span> <span class="tok-n">symbol</span><span class="tok-p">)</span> <span class="tok-s">&quot;lisp&quot;</span> <span class="tok-n">input</span> <span class="tok-kr">of</span>
+    <span class="tok-kt">Left</span> <span class="tok-n">err</span> <span class="tok-ow">-&gt;</span> <span class="tok-s">&quot;No match: &quot;</span> <span class="tok-o">++</span> <span class="tok-n">show</span> <span class="tok-n">err</span>
+    <span class="tok-kt">Right</span> <span class="tok-n">val</span> <span class="tok-ow">-&gt;</span> <span class="tok-s">&quot;Found value&quot;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>我们在第二课里简单看过一点关于&gt;&gt;("bind")操作符的内容，并且提到我们是把它放在do代码块中的每行的行尾来起到连接作用的。这里，我们显式的使用它来将我们的空格解析器和之前的符合解析器组合起来。然而，相比IO Monad绑定在Parser中有着完全不同的语义。
+对于Parser Monad来说，绑定意味着“尝试匹配第一个解析器，然后用剩下的输入尝试匹配第二个，如果任意一次匹配失败的话，就返回失败”。总的来说，绑定在具体的Monad中会起到不同的效果；它被用作一种通用的组织计算的方式，所以能够适应各种不同的情况。你可以阅读对应的文档来判断出它到底会干什么。</p>
+</div>
+<div class="paragraph">
+<p>编译并且运行代码。请注意我们这里的spaces函数是基于skipMany1定义的，他不会再像之前那样能够识别出单个的字符。因此你必须放一些空格在输入字符的前面。看下现在代码是如何运作的：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="bash"><span></span>$ ghc -package parsec -o simple_parser <span class="tok-o">[</span>../code/listing3.2.hs listing3.2.hs<span class="tok-o">]</span>
+$ ./simple_parser <span class="tok-s2">&quot;   %&quot;</span>
+Found value
+$ ./simple_parser %
+No match: <span class="tok-s2">&quot;lisp&quot;</span> <span class="tok-o">(</span>line <span class="tok-m">1</span>, column <span class="tok-m">1</span><span class="tok-o">)</span>:
+unexpected <span class="tok-s2">&quot;%&quot;</span>
+expecting space
+$ ./simple_parser <span class="tok-s2">&quot;   abc&quot;</span>
+No match: <span class="tok-s2">&quot;lisp&quot;</span> <span class="tok-o">(</span>line <span class="tok-m">1</span>, column <span class="tok-m">4</span><span class="tok-o">)</span>:
+unexpected <span class="tok-s2">&quot;a&quot;</span>
+expecting space</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_返回值">3.3. 返回值</h3>
+<div class="paragraph">
+<p>现在，我们的解析器还并不能做些什么---它仅仅是告诉我们一个给定的字符串是否能够被识别。现在，我们想让它能够做更多的事情：我们希望它能够将输入的字符串转换成一个特定的数据结构并让我们可以容易的遍历它。在这一节，我们将学习如何定义一个数据类型，并且修改我们的解析器让它能够返回该数据类型。</p>
+</div>
+<div class="paragraph">
+<p>首先，我们来定义一个包含所有各种Lisp值的数据类型：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="haskell"><span></span><span class="tok-kr">data</span> <span class="tok-kt">LispVal</span> <span class="tok-ow">=</span> <span class="tok-kt">Atom</span> <span class="tok-kt">String</span>
+             <span class="tok-o">|</span> <span class="tok-kt">List</span> <span class="tok-p">[</span><span class="tok-kt">LispVal</span><span class="tok-p">]</span>
+             <span class="tok-o">|</span> <span class="tok-kt">DottedList</span> <span class="tok-p">[</span><span class="tok-kt">LispVal</span><span class="tok-p">]</span> <span class="tok-kt">LispVal</span>
+             <span class="tok-o">|</span> <span class="tok-kt">Number</span> <span class="tok-kt">Integer</span>
+             <span class="tok-o">|</span> <span class="tok-kt">String</span> <span class="tok-kt">String</span>
+             <span class="tok-o">|</span> <span class="tok-kt">Bool</span> <span class="tok-kt">Bool</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>这是一个代数数据类型的例子：它定义了一组LispVal类型的变量可能存储的值。每一个可能性（通过“|”符号分割的构造器）包含了一个代表构造器的标识符和这个构造器能够接受的一系列数据类型。在这里，一个LispVal可能是：</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Atom。存储了一个用来命名它的字符串</p>
+</li>
+<li>
+<p>List。其中存储了一组其他LispVal（Haskell列表用方括号表示），也被称为Proper List。</p>
+</li>
+<li>
+<p>DottedList。对应Scheme中的(a b . c)形式。也被称作Improper List。存储了除最后一个元素以外的所有元素，然后再把最后一个元素额外存储起来。</p>
+</li>
+<li>
+<p>Number。包含一个Haskell数字。</p>
+</li>
+<li>
+<p>String。包含一个Haskell字符串。</p>
+</li>
+<li>
+<p>Bool。包含一个Haskell布尔值。</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>构造器和类型使用的是不同的命名空间，所以你同时将一个类型名和构造器都定义成String，并没有问题。唯一要注意的是，它们都需要以大写字母开头。</p>
+</div>
+<div class="paragraph">
+<p>接下来，我们来添加一些解析函数来返回对应的不同类型。一个字符串总是一个以双引号开头，然后接着一串不包含双引号的字符，最终以另一个双引号结束：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="haskell"><span></span><span class="tok-nf">parseString</span> <span class="tok-ow">::</span> <span class="tok-kt">Parser</span> <span class="tok-kt">LispVal</span>
+<span class="tok-nf">parseString</span> <span class="tok-ow">=</span> <span class="tok-kr">do</span>
+                <span class="tok-n">char</span> <span class="tok-sc">&#39;&quot;&#39;</span>
+                <span class="tok-n">x</span> <span class="tok-ow">&lt;-</span> <span class="tok-n">many</span> <span class="tok-p">(</span><span class="tok-n">noneOf</span> <span class="tok-s">&quot;</span><span class="tok-se">\\</span><span class="tok-s">&quot;&quot;)</span>
+<span class="tok-s">                char &#39;&quot;</span><span class="tok-sc">&#39;</span>
+                <span class="tok-n">return</span> <span class="tok-o">$</span> <span class="tok-kt">String</span> <span class="tok-n">x</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>我们再次使用do表达式而不是&gt;&gt;操作符来组织代码。只是因为我们需要获取解析得到的值（many (noneOf "\\"")的返回值）并且同时使用一些其他的解析操作。总的来说，对于不返回值得操作，使用&gt;&gt;符号，对于你需要立刻将返回的值传递到下一个操作的情况，使用&gt;&gt;=，其余的情况则用do代码块比较好。</p>
+</div>
+<div class="paragraph">
+<p>当我们完成解析并从many函数中获取Haskell字符串时，我们调用了String构造器（LispVal数据类型）来把它转化成一个LispVal类型的值。每一个在代数数据类型中的构造器都能够像函数一样将传递给它的参数转化成它对应的类型。构造器还能够在模式匹配中作为左手边的匹配表达式进行使用；我们会在第三课里尝试将解析器返回的结果分别用Either类型的两种构造器进行匹配。</p>
+</div>
+<div class="paragraph">
+<p>接着我们使用内置的return函数将我们的LispVal值lift成一个Parser Monad。注意，do代码块中的每行都必须有同样的类型，然而由于我们的String构造器的返回结果是LispVal类型，因此我们要利用return帮助将它风中成一个Parser操作并且在不消费任何输入的情况下直接将内部的值进行返回。这样我们的整个parserString操作就能够得到Parser LispVal类型的返回值了。</p>
+</div>
+<div class="paragraph">
+<p>$符号是一个中缀函数呼叫符：它和我们直接使用return (String x)的作用一样，但是$是右结合的，并且运行的优先级较低，这样让我们能够省略掉一些原来需要写得括号。由于$是一个操作符，你可以像使用函数那样使用它做任何事情：传递它，部分调用等。在这个方面，它和Lisp中的apply函数功能一致。</p>
+</div>
+<div class="paragraph">
+<p>现在继续来看Scheme的变量。一个atom是一个字母或者符号，跟着若干个字母，数字或者符号：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="haskell"><span></span><span class="tok-nf">parseAtom</span> <span class="tok-ow">::</span> <span class="tok-kt">Parser</span> <span class="tok-kt">LispVal</span>
+<span class="tok-nf">parseAtom</span> <span class="tok-ow">=</span> <span class="tok-kr">do</span>
+              <span class="tok-n">first</span> <span class="tok-ow">&lt;-</span> <span class="tok-n">letter</span> <span class="tok-o">&lt;|&gt;</span> <span class="tok-n">symbol</span>
+              <span class="tok-n">rest</span> <span class="tok-ow">&lt;-</span> <span class="tok-n">many</span> <span class="tok-p">(</span><span class="tok-n">letter</span> <span class="tok-o">&lt;|&gt;</span> <span class="tok-n">digit</span> <span class="tok-o">&lt;|&gt;</span> <span class="tok-n">symbol</span><span class="tok-p">)</span>
+              <span class="tok-kr">let</span> <span class="tok-n">atom</span> <span class="tok-ow">=</span> <span class="tok-n">first</span><span class="tok-kt">:</span><span class="tok-n">rest</span>
+              <span class="tok-n">return</span> <span class="tok-o">$</span> <span class="tok-kr">case</span> <span class="tok-n">atom</span> <span class="tok-kr">of</span>
+                         <span class="tok-s">&quot;#t&quot;</span> <span class="tok-ow">-&gt;</span> <span class="tok-kt">Bool</span> <span class="tok-kt">True</span>
+                         <span class="tok-s">&quot;#f&quot;</span> <span class="tok-ow">-&gt;</span> <span class="tok-kt">Bool</span> <span class="tok-kt">False</span>
+                         <span class="tok-kr">_</span>    <span class="tok-ow">-&gt;</span> <span class="tok-kt">Atom</span> <span class="tok-n">atom</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>这里我们来看下另一个Parsec的组合符，选择符&lt;|&gt;。它会让我们首先尝试第一个解析器，如果它失败了，然后尝试第二个。如果任意一个成功了，那就会返回成功解析出得值。第一个解析器必须在它消费掉任何输入前失败返回：我们待会儿来看看如何用它来实现回溯。</p>
+</div>
+<div class="paragraph">
+<p>一旦我们读到第一个字符和并成功读完剩下的部分，我们需要把它们放在一起组成一个atom。let声明定义了一个新的变量atom。我们使用列表连接符:来连接它们。和:相对应的，我们使用连接符像这样来连接列表[first]rest；first只是一个字符，我们可以用方括号包围它来将它转换成一个单元素的列表。</p>
+</div>
+<div class="paragraph">
+<p>然后我们使用一个case表达式来尝试将字符串匹配成true和false，从而判断到底是应该创建和返回哪种LispVal类型。下划线符号\是一个可读性的技巧：目标会不断尝试匹配case块中的值直到遇到\（或者在此之前就因为某些异常失败了从而导致整个匹配失败）并作为一个通配符返回。因此如果代码运行到_条件下，它总是会匹配并且返回一个atom值。</p>
+</div>
+<div class="paragraph">
+<p>最后，我们再为数字创建一个解析器。这里会展示更多的方法来处理monadic值：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="haskell"><span></span><span class="tok-nf">parseNumber</span> <span class="tok-ow">::</span> <span class="tok-kt">Parser</span> <span class="tok-kt">LispVal</span>
+<span class="tok-nf">parseNumber</span> <span class="tok-ow">=</span> <span class="tok-n">liftM</span> <span class="tok-p">(</span><span class="tok-kt">Number</span> <span class="tok-o">.</span> <span class="tok-n">read</span><span class="tok-p">)</span> <span class="tok-o">$</span> <span class="tok-n">many1</span> <span class="tok-n">digit</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>从右往左看会让你很容易理解这个表达式，因为函数呼叫符($)和函数组合符(.)函数都是右结合的。结合器many1会匹配目标的一个或者多个传递给它的参数，这里我们会匹配到一个或者多个数字。我们会用返回的字符串来构建出一个数字的LispVal类型，不过这里我们貌似有一些类型上的匹配问题。因此首先，我们用内建的read函数来将字符串转化为数字。然后我们再把数字传递给Number构造器得到一个LispVal类型的值。我们用函数组合符创建出一个将右边参数的调用结果传递给左边参数的函数，因此我们就这样将两个函数调用结合起来了。</p>
+</div>
+<div class="paragraph">
+<p>不幸的是，many1 digit的返回值是一个Parser String，所以我们的经过结合的Number . Read函数仍然不能直接对它进行操作。我们需要一种告诉它只操作Monad里的值的方法，然后再把处理后的结果返回给Parser LispVal。而标准库中的liftM函数刚好能帮助我呢，所以我们对我们的函数Number . Read使用liftM，然后把结果对Parser进行调用。</p>
+</div>
+<div class="paragraph">
+<p>我们需要在程序顶部导入Monad模块来使用liftM函数：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="haskell"><span></span><span class="tok-kr">import</span> <span class="tok-nn">Control.Monad</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>这种不断进行函数组合，函数调用和函数传递的编程风格在Haskell代码中是非常常见的。这会让你能够在一行中表达出非常复杂的逻辑，并把中间的阶段分解成其它可以用各种方式结合起来的函数。不幸的是，这表明你需要常常从右向左阅读Haskell代码并且注意跟踪它们的类型。在后面的教程中我们会看到更多的例子，所以你应该会马上能适应这种方式。</p>
+</div>
+<div class="paragraph">
+<p>创建一个能够接受字符串，数字或是Atom的解析器：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="haskell"><span></span><span class="tok-nf">parseExpr</span> <span class="tok-ow">::</span> <span class="tok-kt">Parser</span> <span class="tok-kt">LispVal</span>
+<span class="tok-nf">parseExpr</span> <span class="tok-ow">=</span> <span class="tok-n">parseAtom</span>
+         <span class="tok-o">&lt;|&gt;</span> <span class="tok-n">parseString</span>
+         <span class="tok-o">&lt;|&gt;</span> <span class="tok-n">parseNumber</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>编辑readExpr函数让它调用我们的新解析器：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="haskell"><span></span><span class="tok-nf">readExpr</span> <span class="tok-ow">::</span> <span class="tok-kt">String</span> <span class="tok-ow">-&gt;</span> <span class="tok-kt">String</span>
+<span class="tok-nf">readExpr</span> <span class="tok-n">input</span> <span class="tok-ow">=</span> <span class="tok-kr">case</span> <span class="tok-n">parse</span> <span class="tok-n">parseExpr</span> <span class="tok-s">&quot;lisp&quot;</span> <span class="tok-n">input</span> <span class="tok-kr">of</span>
+    <span class="tok-kt">Left</span> <span class="tok-n">err</span> <span class="tok-ow">-&gt;</span> <span class="tok-s">&quot;No match: &quot;</span> <span class="tok-o">++</span> <span class="tok-n">show</span> <span class="tok-n">err</span>
+    <span class="tok-kt">Right</span> <span class="tok-kr">_</span> <span class="tok-ow">-&gt;</span> <span class="tok-s">&quot;Found value&quot;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>编译并运行代码，你就能发现它接受任意的数字，字符串或者符号并且能够拒绝其他的情况了：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="bash"><span></span>$ ghc -package parsec -o simple_parser <span class="tok-o">[</span>.../code/listing3.3.hs listing3.3.hs<span class="tok-o">]</span>
+$ ./simple_parser <span class="tok-s2">&quot;\\&quot;</span>this is a string<span class="tok-se">\\</span><span class="tok-s2">&quot;&quot;</span>
+Found value
+$ ./simple_parser <span class="tok-m">25</span>
+Found value
+$ ./simple_parser symbol
+Found value
+$ ./simple_parser <span class="tok-o">(</span>symbol<span class="tok-o">)</span>
+bash: syntax error near unexpected token <span class="tok-sb">`</span>symbol<span class="tok-err">&#39;</span>
+$ ./simple_parser <span class="tok-s2">&quot;(symbol)&quot;</span>
+No match: <span class="tok-s2">&quot;lisp&quot;</span> <span class="tok-o">(</span>line <span class="tok-m">1</span>, column <span class="tok-m">1</span><span class="tok-o">)</span>:
+unexpected <span class="tok-s2">&quot;(&quot;</span>
+expecting letter, <span class="tok-s2">&quot;\\&quot;&quot; or digit</span></code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_习题">3.4. 习题</h3>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>重写parseNumber函数，不允许使用liftM，尝试</p>
+<div class="olist loweralpha">
+<ol class="loweralpha" type="a">
+<li>
+<p>使用do代码块</p>
+</li>
+<li>
+<p>显式的运用&gt;&gt;=操作符来进行连接</p>
+</li>
+</ol>
+</div>
+</li>
+<li>
+<p>我们的字符串并不太符合R5RS规范，因为它们不支持在字符串里使用转义之后的引号。修改parseString函数让\”表示一个引号字符而不是整个字符串的结束。你可能需要用一个新的解析器操作来替换noneOf “\””从而让它能接受非引号字符或者一个转义符号之后的引号字符。</p>
+</li>
+<li>
+<p>修改程序，让它支持\\n \\r \\t \\\\\\\\以及其它你希望转义的字符。</p>
+</li>
+<li>
+<p>修改parseNumber让它提供Scheme标准中对不同进制的支持。readOct和readHex函数或许会对你很有用。</p>
+</li>
+<li>
+<p>给LispVal增加一个字符构造器，然后为R5RS标准中定义的字符创造一个解析器。</p>
+</li>
+<li>
+<p>给LispVal增加一个浮点数构造器来支持R5RS中的小数相关的语法。参考Haskell中的readFloat函数。</p>
+</li>
+<li>
+<p>增加数据类型和解析器从而支持Scheme中的full numeric tower。Haskell已经有内建类型来表示其中的部分内容，你可以通过Prelude模块确认。至于其它，你可以通过定义复合类型的方法来表示它们。例如，一个分数可以用分子和分母表示而一个复数可以用实部和虚部来表示（每一部分都是一个实数）。</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_递归解析列表和引号">3.5. 递归解析：列表和引号</h3>
+<div class="paragraph">
+<p>接下来，给我们的解释器添加更多的解析器。从Lisp的知名括号列表开始：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="haskell"><span></span><span class="tok-nf">parseList</span> <span class="tok-ow">::</span> <span class="tok-kt">Parser</span> <span class="tok-kt">LispVal</span>
+<span class="tok-nf">parseList</span> <span class="tok-ow">=</span> <span class="tok-n">liftM</span> <span class="tok-kt">List</span> <span class="tok-o">$</span> <span class="tok-n">sepBy</span> <span class="tok-n">parseExpr</span> <span class="tok-n">spaces</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>和parserNumber类似的，首先解析一系列由空格分隔开的表达式（sepBy parseExpr spaces），然后在Parser Monad内部调用构造符将它们组成一个List。注意我们能够把parseExpr直接传递给sepBy，尽管它是一个我们自己写的操作。</p>
+</div>
+<div class="paragraph">
+<p>dotted-list的解析器稍微会复杂一点，不过仍然只是需要使用我们已经熟悉的概念：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="haskell"><span></span><span class="tok-nf">parseDottedList</span> <span class="tok-ow">::</span> <span class="tok-kt">Parser</span> <span class="tok-kt">LispVal</span>
+<span class="tok-nf">parseDottedList</span> <span class="tok-ow">=</span> <span class="tok-kr">do</span>
+    <span class="tok-n">head</span> <span class="tok-ow">&lt;-</span> <span class="tok-n">endBy</span> <span class="tok-n">parseExpr</span> <span class="tok-n">spaces</span>
+    <span class="tok-n">tail</span> <span class="tok-ow">&lt;-</span> <span class="tok-n">char</span> <span class="tok-sc">&#39;.&#39;</span> <span class="tok-o">&gt;&gt;</span> <span class="tok-n">spaces</span> <span class="tok-o">&gt;&gt;</span> <span class="tok-n">parseExpr</span>
+    <span class="tok-n">return</span> <span class="tok-o">$</span> <span class="tok-kt">DottedList</span> <span class="tok-n">head</span> <span class="tok-n">tail</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>注意我们是怎么使用&gt;&gt;把一系列的Parser操作连接起来并且do代码块中运用它的。表达式char '.' &gt;&gt; spaces返回一个Parser()，然后通过与parseExpr结合产生一个Parser LispVal类型，完全和我们在do代码块中需要的类型一致。</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="haskell"><span></span><span class="tok-nf">parseQuoted</span> <span class="tok-ow">::</span> <span class="tok-kt">Parser</span> <span class="tok-kt">LispVal</span>
+<span class="tok-nf">parseQuoted</span> <span class="tok-ow">=</span> <span class="tok-kr">do</span>
+    <span class="tok-n">char</span> <span class="tok-kt">&#39;\\</span><span class="tok-sc">&#39;&#39;</span>
+    <span class="tok-n">x</span> <span class="tok-ow">&lt;-</span> <span class="tok-n">parseExpr</span>
+    <span class="tok-n">return</span> <span class="tok-o">$</span> <span class="tok-kt">List</span> <span class="tok-p">[</span><span class="tok-kt">Atom</span> <span class="tok-s">&quot;quote&quot;</span><span class="tok-p">,</span> <span class="tok-n">x</span><span class="tok-p">]</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>大部分都是我们已经熟悉了的内容了：这段程序读取一个单个的引号字符，读取一个表达式然后把它绑定给x，然后返回(quote x)，来表达一个Scheme符号。Atom构造器就像一个普通函数一样：你传递一个需要封装的字符串给它，然后它返回给你一个LispVal类型的值。你可以对这个LispVal做任何你一般情况下能做的事情，比如把它放入一个列表里。</p>
+</div>
+<div class="paragraph">
+<p>最后，编辑parseExpr函数来把我们的新解析器添加进去：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="haskell"><span></span><span class="tok-nf">parseExpr</span> <span class="tok-ow">::</span> <span class="tok-kt">Parser</span> <span class="tok-kt">LispVal</span>
+<span class="tok-nf">parseExpr</span> <span class="tok-ow">=</span> <span class="tok-n">parseAtom</span>
+         <span class="tok-o">&lt;|&gt;</span> <span class="tok-n">parseString</span>
+         <span class="tok-o">&lt;|&gt;</span> <span class="tok-n">parseNumber</span>
+         <span class="tok-o">&lt;|&gt;</span> <span class="tok-n">parseQuoted</span>
+         <span class="tok-o">&lt;|&gt;</span> <span class="tok-kr">do</span> <span class="tok-n">char</span> <span class="tok-sc">&#39;(&#39;</span>
+                <span class="tok-n">x</span> <span class="tok-ow">&lt;-</span> <span class="tok-n">try</span> <span class="tok-n">parseList</span> <span class="tok-o">&lt;|&gt;</span> <span class="tok-n">parseDottedList</span>
+                <span class="tok-n">char</span> <span class="tok-sc">&#39;)&#39;</span>
+                <span class="tok-n">return</span> <span class="tok-n">x</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>这里演示了最后一个Parsec的功能：回溯。parseList和parseDottedLis直到某个特定的位置都能够识别出相同的字符串；这打破了一个选择不能在出错前消费任何输入的前提。而try连接器试图运行某个的解析器，但是如果解析失败了，它会回滚到上一个状态。这让你在不影响其它分支的前提下对目标进行各种操作。</p>
+</div>
+<div class="paragraph">
+<p>编译然后运行：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="bash"><span></span>$ ghc -package parsec -o simple_parser <span class="tok-o">[</span>../code/listing3.4.hs listing3.4.hs<span class="tok-o">]</span>
+$ ./simple_parser <span class="tok-s2">&quot;(a test)&quot;</span>
+Found value
+$ ./simple_parser <span class="tok-s2">&quot;(a (nested) test)&quot;</span>
+Found value
+$ ./simple_parser <span class="tok-s2">&quot;(a (dotted . list) test)&quot;</span>
+Found value
+$ ./simple_parser <span class="tok-s2">&quot;(a &#39;(quoted (dotted . list)) test)&quot;</span>
+Found value
+$ ./simple_parser <span class="tok-s2">&quot;(a &#39;(imbalanced parens)&quot;</span>
+No match: <span class="tok-s2">&quot;lisp&quot;</span> <span class="tok-o">(</span>line <span class="tok-m">1</span>, column <span class="tok-m">24</span><span class="tok-o">)</span>:
+unexpected end of input
+expecting space or <span class="tok-s2">&quot;)&quot;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>注意我们可以在parseExpr里任意深入的嵌套我们的解析器。这样，我们通过一些简单的定义就能够完全的让程序阅读Lisp代码了。这就是递归的威力。</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_习题_2">3.6. 习题</h3>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>添加backquote语法糖的支持：Scheme标准详述了它应该怎样展开成（quasiquote/unquote）。</p>
+</li>
+<li>
+<p>添加vectors的支持。你可以使用Haskell的内置实现Array，但是它使用起来可能会有些问题。严格说，一个vector应该有常数时间的索引和更新操作，但是事实上直接的更新操作在一个纯函数式语言里是很难实现的。你可能在看过该系列教程的后面的章节后会对如何实现它有更好的想法。</p>
+</li>
+<li>
+<p>如果不用try组合符的话，你需要将目标从左边开始分解并在接下来调用parseExpr解析器自身。最后需要用一个解析器对字符串进行匹配，它要么是空要么是一个点符号加上一个单元素的表达式。这里把这个有趣的练习留给你：把它们的返回值组合成一个要么是List要么是DottedList的Either类型：你也许需要把判断逻辑分解到另外一个辅助函数里。</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-06-29 21:17:19 +0800
+Last updated 2021-07-02 14:21:20 +0800
 </div>
 </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
-<script>
-if (!hljs.initHighlighting.called) {
-  hljs.initHighlighting.called = true
-  ;[].slice.call(document.querySelectorAll('pre.highlight > code')).forEach(function (el) { hljs.highlightBlock(el) })
-}
-</script>
 </body>
 </html>
