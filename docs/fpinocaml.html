@@ -477,6 +477,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <ul class="sectlevel3">
 <li><a href="#_运算符">2.2.1. 运算符</a></li>
 <li><a href="#_if表达式">2.2.2. if表达式</a></li>
+<li><a href="#_let表达式">2.2.3. let表达式</a></li>
 </ul>
 </li>
 </ul>
@@ -1249,13 +1250,91 @@ val x : int = 42</code></pre>
 <p>在上面的例子中，变量 <code>x</code> 有类型 <code>int</code> ，这就是冒号的含义。</p>
 </div>
 </div>
+<div class="sect3">
+<h4 id="_let表达式">2.2.3. let表达式</h4>
+<div class="paragraph">
+<p>在我们使用 <code>let</code> 关键字时，我们在顶层和 <code>.ml</code> 文件中做了一些定义，例如：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-ocaml hljs" data-lang="ocaml"># let x = 42;;
+val x : int = 42</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>将 <code>x</code> 定义为 <code>42</code> ，之后我们就可以在顶层中的未来的一些定义中使用 <code>x</code> 了。我们把 <code>let</code> 的这种使用方式成为 <code>let定义</code> 。</p>
+</div>
+<div class="paragraph">
+<p>下面是 <code>let</code> 的另一种使用方法，这是一个 <code>let</code> 表达式：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-ocaml hljs" data-lang="ocaml"># let x = 42 in x+1
+- : int = 43</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>在这里，我们将一个值绑定到名称 <code>x</code>，然后在另一个表达式 <code>x+1</code> 中使用该绑定。我们将把这种使用称为 <code>let</code> 表达式。因为它是一个表达式，所以它的计算结果是一个值。这与定义不同，定义本身不求值为任何值。我们可以看到，如果我们尝试将 <code>let</code> 定义放在预期表达式的位置：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-ocaml hljs" data-lang="ocaml"># (let x = 42) + 1
+Error: Syntax error: operator expected.</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>在语法上，不允许在 <code>+</code> 运算符的左侧使用 <code>let</code> 定义，因为那里需要一个值，但是定义不会计算为一个值。另一方面， <code>let</code> 表达式可以正常工作：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-ocaml hljs" data-lang="ocaml"># (let x = 42 in x) + 1
+- : int = 43</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>在顶层理解 <code>let</code> 定义的另一种方式是，它们就像我们还没有提供主体表达式的 <code>let</code> 表达式。隐含地，这种主体表达式是我们将来输入的任何其他内容。例如，</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-ocaml hljs" data-lang="ocaml"># let a = "big";;
+# let b = "red";;
+# let c = a^b;;
+# ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>以上代码将被OCaml理解为：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-ocaml hljs" data-lang="ocaml">let a = "big" in
+let b = "red" in
+let c = a^b in
+...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>后面的一系列 <code>let</code> 绑定是如何在给定的代码块中绑定多个变量的惯用方法。</p>
+</div>
+<div class="paragraph">
+<p><strong>语法</strong></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-ocaml hljs" data-lang="ocaml">let x = e1 in e2</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>像往常一样，<code>x</code> 是一个标识符。我们称 <code>e1</code> 为绑定表达式，因为它是绑定到 <code>x</code> 的东西；我们称 <code>e2</code> 为主体表达式，因为 <code>x</code> 的绑定将在 <code>e2</code> 的作用域内使用。</p>
+</div>
+</div>
 </div>
 </div>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-06-08 14:25:44 +0800
+Last updated 2021-06-28 11:30:27 +0800
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
