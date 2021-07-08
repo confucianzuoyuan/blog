@@ -1,0 +1,70 @@
+= 构建一个编译器
+:icons: font
+:source-highlighter: pygments
+:toc: left
+:toclevels: 4
+:sectnums:
+
+== 简介
+
+这个系列的文章是一个开发语言的语法分析器和编译器的教程。在我们完成编译器之前，我们将会覆盖构建编译器的每一方面的知识：设计一门新的编程语言，然后构建一个可以工作的编译器。
+
+尽管我不是一个科班出身的计算机科学家（我的博士学位是物理学方面的），我对编译器却已经感兴趣很多年了。我购买了编译器方面的所有书籍并尝试着消化所有的内容。我不介意告诉你这个消化的过程非常的缓慢。编译器方面的书都是写给计算机专业的学生的，而对于我们这些业余爱好者则读起来非常的困难。但经过了很多年的消化，我终于开始学到一点东西了。改变发生于我开始自己鼓捣自己的编译器。现在我决定和你们分享一下我所学到的东西。当这个教程的系列结束时，你当然不可能成为一个计算机科学家，你也不可能学到所有有关编译器的知识。因为我想做的就是忽略掉所有编译器的理论。而你所能学到的就是构建一个可以工作的编译器所需要的方方面面的有关实践的知识。
+
+所以这是一个边做边学的教程。在这一系列教程中，我将会不断的写程序做实验。你最好跟上我的脚步，把我写过的代码自己也写一遍，最好也能添加一些你自己写的代码。我将使用Turbo Pascal 4.0编译器。我将在TP中不断的编写代码。这些代码都是可以执行的代码，可能你会想把这些代码粘贴到你的电脑上然后运行。如果你没有一份Turbo Pascal的拷贝，那么可能会影响你写代码的进程。你最好搞一份拷贝。毕竟，这是一个伟大的产品，能用在很多的地方。
+
+一些有关编译器的文章会包含一些示例代码，或者包含一个完整的编译器代码（例如Small-C编译器），然后你可以拷贝代码然后运行，但无法理解整个代码是如何工作的。我希望做的比那些文章多一些。我希望能教给你如何搞定这些东西，然后你就可以自己搞定这一切，甚至可以鼓捣自己的编译器，或者改进我写的编译器，而不只是重复一遍我的工作。
+
+毫无疑问写一个编译器是一个很有野心的工作，所以不可能一页纸就搞定。我希望在一系列的文章中把这些工作搞定。每一篇文章将会覆盖编译器的某个单独的主题，这些主题独立性很强。如果你某个时间段只对某个主题感兴趣，那你只需要看那个主题的文章就可以了。每篇文章都比较完整，所以在最终完成之前，你只需要等待最新的文章就可以了。所以请耐心。
+
+我的系列教程将不会讲解编译器理论涉及到的很多的方面。正统的编译器课本会遵循以下教学过程：
+
+* 一个介绍性的章节，用来介绍什么是编译器。
+* 一个或者两个章节，用来介绍编程语法方面的东西，使用巴科斯-诺尔范式（Backus-Naur Form，BNF）。
+* 一个或者两个章节，用来介绍词法分析。重点讲解确定性和非确定性有限自动机。
+* 多个章节。用来介绍语法分析理论，从自顶向下递归下降语法分析开始，到LALR语法分析器结束。
+* 一个章节，用来介绍中间语言。重点介绍P-code，以及相似的逆波兰表示形式。
+* 多个章节。用来介绍处理子程序、传递参数和类型声明的多种方式。
+* 一个章节。用来介绍代码生成。通常针对一个拥有简单指令集的虚拟CPU生成代码。大部分读者（事实上，大部分大学的课程）都不会走到这么远。
+* 最后的一个或者两个章节。用来介绍优化。读者通常也不会走到这一章。
+
+在我的系列教程中，我将会走一条很不同的路线。我不会给你很多的技术选项，我只会给你一条路。如果你想探索编译器技术各阶段的各种实现技术，好吧，我会鼓励你这么做，但我只会教你我会的那一条路。我也会跳过很多会让人昏昏欲睡的理论知识。别误解我：我并不是鄙视理论，只是当我们去探索一门给定的编程语言的充满各种奇技淫巧的实现时，才会需要理论。但我一直坚信，我们先得把最终要的事情搞定。在教程中，我们将会搞定95%的编译器方面的技术，而这些是不需要那么多理论就能搞定的。
+
+我将会只讨论一种语法分析技术：自顶向下递归下降语法分析器。这个技术是手工打造一个编译器所能使用的唯一的一种技术。如果使用其他方法实现语法分析器，那你就必须使用工具了，例如YACC。而且使用工具的话，我们无法控制最终的编译器会消耗多少内存。
+
+我也借鉴了Ron Cain写的书的部分内容，他是Small C的作者。很多编译器的作者都会使用一种中间语言（例如P-code），也就是将编译器分割成两部分（一个是编译器的前端，用来将代码编译成P-code，一个是编译器的后端，用来将P-code编译成目标机器的指令集代码）。Ron给我们展示了一种方法，那就是我们可以直接将代码编译成目标机器的可执行代码（也就是目标机器的汇编语言程序）。当然编译成的汇编语言代码肯定不是最紧凑的代码，因为编译出紧凑的代码，也就是优化是一个很难的工作。但编译出来的汇编代码是可以工作的，这就够了。当然我也不想让你们觉得我们写的编译器是毫无价值的，所以我会告诉你一些优化的方法。
+
+最后，我会在教程中使用一些技巧，来帮助我们理解编译器的构造过程。这里面我使用的最主要的技巧就是单字符token（token里没有空格）的使用。因为我发现一旦我能够写出一个识别I-T-L这些token的语法分析器，那么写一个识别IF-THEN-ELSE的语法分析器就很简单了。在第二课中，我会向你展示如何编写一个语法分析器来识别任意长度的token。还有一个技巧，就是我会忽略掉文件I/O，因为我发现如果我能够处理来自键盘的输入以及将结果输出到屏幕上，我就可以处理来自硬盘的文件读写。经验表明，如果一个翻译器可以正常工作，那么将翻译器和文件I/O连接起来将会很简单。最后一个技巧就是，我不会去做错误处理和错误恢复方面的工作。我们编写的程序将会识别错误，但不会崩溃，而是直接停止运行，停止的位置是编译器发现的第一个错误，就像Turbo Pascal做的那样。你也可以发明一些其他的技巧。这些技巧不会出现在编译器的课本里，但他们很好使。
+
+A word about style and efficiency.    As  you will see, I tend to
+write programs in  _VERY_  small, easily understood pieces.  None
+of the procedures we'll  be  working with will be more than about
+15-20 lines long.  I'm a fervent devotee  of  the  KISS  (Keep It
+Simple, Sidney) school of software development.  I  try  to never
+do something tricky or  complex,  when  something simple will do.
+Inefficient?  Perhaps, but you'll like the  results.    As  Brian
+Kernighan has said,  FIRST  make  it  run, THEN make it run fast.
+If, later on,  you want to go back and tighten up the code in one
+of  our products, you'll be able to do so, since the code will be
+quite understandable. If you  do  so, however, I urge you to wait
+until the program is doing everything you want it to.
+
+I  also  have  a  tendency  to  delay  building  a module until I
+discover that I need  it.    Trying  to anticipate every possible
+future contingency can  drive  you  crazy,  and  you'll generally
+guess wrong anyway.    In  this  modern day of screen editors and
+fast compilers, I don't hesitate to change a module when I feel I
+need a more powerful one.  Until then,  I'll  write  only  what I
+need.
+
+One final caveat: One of the principles we'll be sticking to here
+is that we don't  fool  around with P-code or imaginary CPUs, but
+that we will start out on day one  producing  working, executable
+object code, at least in the form of  assembler  language source.
+However, you may not  like  my  choice  of assembler language ...
+it's 68000 code, which is what works on my system (under SK*DOS).
+I  think  you'll  find, though, that the translation to any other
+CPU such as the 80x86 will  be  quite obvious, though, so I don't
+see  a problem here.  In fact, I hope someone out there who knows
+the '86 language better than I do will offer  us  the  equivalent
+object code fragments as we need them.
