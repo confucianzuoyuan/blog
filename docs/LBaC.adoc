@@ -578,7 +578,7 @@ end;
 
 像之前那样，编译一下最新写的程序，然后保证它能够正确的解析合法的输入，以及能够对非法输入正确的报错。
 
-单元运算符负号的处理
+一元运算符负号的处理
 
 现在，我们的语法分析器已经能够处理任意的表达式了，是吗？好吧，试一下下面的输入：
 
@@ -639,117 +639,25 @@ end;
                              
 在下一篇文章中，我将会向你展示扩展我们的语法分析器来适配以上的扩展是相当简单的。我还会想你展示如何去处理多字符的数值以及变量名。所以看到了吧，我们离一个真正有用的语法分析器已经不远了。
 
+有关优化的一点东西
 
-A WORD ABOUT OPTIMIZATION
+之前的教程，我向你保证过我会给你一些提示，也就是如何去改进生成的汇编代码的质量的方法。像我所说的那样，生成高质量的汇编代码并不是本系列教程的主要目标。但你起码需要知道我们不想在执行汇编代码的时候因为低质量代码的原因浪费时间。实际上，我们可以修改语法分析器来产生更高质量的代码，且并不需要抛弃我们之前写的所有代码。通常情况下，一些优化并不是那么的难做。也就是只需要在语法分析器中添加一些额外的代码就可以了。
 
-Earlier in this session, I promised to give you some hints  as to
-how we can improve the quality of the generated code.  As I said,
-the  production of tight code is not the  main  purpose  of  this
-series of articles.  But you need to at least know that we aren't
-just  wasting our time here ... that we  can  indeed  modify  the
-parser further to  make  it produce better code, without throwing
-away everything we've done to date.  As usual, it turns  out that
-SOME optimization is not that difficult to do ... it simply takes
-some extra code in the parser.
+有两种主要的方法可以使用：
 
-There are two basic approaches we can take:
+* 在汇编代码产生之后再去优化生成的汇编代码：这个通常叫做 **窥孔优化** 。通常来讲，我们会知道生成的汇编指令的组合顺序，我们也知道哪些汇编代码很糟糕（例如针对 `-1` 产生的汇编代码）。所以我们需要做的就是扫描生成的汇编代码，然后看一下这些组合序列，然后将它们替换成更好的代码就可以了。这有点像宏展开这种技术。只是和宏展开的方向是反的，只需要进行模式匹配就好了。唯一的复杂性在于有大量的汇编代码组合需要去搜索。这种技术叫做窥孔优化的原因就是因为我们一次只能搜索一小组汇编指令的组合。窥孔优化对于代码质量会有惊人的提升。而且窥孔优化无需更改大量的代码。所以这种代价值得付出。生成的汇编代码的运行速度，代码的行数，以及编译器实现的复杂度都值得我们做这种优化。将所有的汇编指令组合都找出来需要很多的IF测试，因为每一个优化都可能是错误的来源。而且，这种测试比较费时间。在经典的窥孔优化器的实现中，窥孔优化会作为编译器的第二个阶段。编译器生成的汇编代码会存放在磁盘上。然后窥孔优化器读取汇编代码文件，然后做优化，优化后的汇编代码继续存放在磁盘上。实际上，你可以将窥孔优化器看成是一个不同于编译器的独立的程序。因为优化器只会从一个小的“窗口”中去窥探生成的汇编代码。一个更好的实现方式是，缓存一些要输出的汇编代码，然后在每一次 `EmitLn` 之后去扫描缓存。
+* 尝试在第一次生成汇编代码的时候就生成更好的代码：这种方法要求我们在 `Emit` 汇编代码之前就找到一些特定的情况来进行优化。举个小例子，我们应该可以识别出表达式中常量0和别的数进行相加，所以我们只需要 `Emit` 一个 `CLR` ，或者干脆什么都不做。又比如，如果我们在 `Factor` 中（注意，不是在 `Expression` 中）识别出一个一元运算符负号，我们可以将 `-1` 这样的常量直接作为普通的常量，而不是通过正数来生成这样的常量。这些事情都不难。他们只需要在代码中额外添加一些代码就可以了。所以我不想把这些优化代码添加到我的代码中。我的观点是，一旦我们将写的编译器跑起来，能够产生能用的汇编代码，我们再回头去折腾一些优化方面的东西，会比较好。这也是为什么世界上会存在发布2.0版本这种事情的原因。
 
-  o Try to fix up the code after it's generated
+还有一种类型的优化值得说一下，这种方法似乎会产生非常紧凑的代码，也不会引起很大的争论。这算是我的发明吧，因为我没在其他出版物中看到过。当然，我觉得这应该不是我的原创。
 
-    This is  the concept of "peephole" optimization.  The general
-    idea it that we  know  what  combinations of instructions the
-    compiler  is  going  to generate, and we also know which ones
-    are pretty bad (such as the code for -1, above).    So all we
-    do  is  to   scan   the  produced  code,  looking  for  those
-    combinations, and replacing  them  by better ones.  It's sort
-    of   a   macro   expansion,   in   reverse,   and   a  fairly
-    straightforward  exercise  in   pattern-matching.   The  only
-    complication,  really, is that there may be  a  LOT  of  such
-    combinations to look for.  It's called  peephole optimization
-    simply because it only looks at a small group of instructions
-    at a time.  Peephole  optimization can have a dramatic effect
-    on  the  quality  of the code,  with  little  change  to  the
-    structure of the compiler  itself.   There is a price to pay,
-    though,  in  both  the  speed,   size, and complexity of  the
-    compiler.  Looking for all those combinations calls for a lot
-    of IF tests, each one of which is a source of error.  And, of
-    course, it takes time.
+我的这种方法避免了大量使用栈，而是会更好的去使用CPU的寄存器。我们之前只做了加减法，所以我们使用的寄存器是 `D0` 和 `D1` ，而不是栈，还记得吗？它可以工作，因为只有两个数需要运算，所以这个隐形的栈从来也没有操作过超过两个数。
 
-     In  the  classical  implementation  of a peephole optimizer,
-    it's done as a second pass to the compiler.  The  output code
-    is  written  to  disk,  and  then  the  optimizer  reads  and
-    processes the disk file again.  As a matter of fact,  you can
-    see that the optimizer could  even be a separate PROGRAM from
-    the compiler proper.  Since the optimizer only  looks  at the
-    code through a  small  "window"  of  instructions  (hence the
-    name), a better implementation would be to simply buffer up a
-    few lines of output, and scan the buffer after each EmitLn.
+而68000处理器有八个数据寄存器。为什么不将它们用做一个私有管理的栈？关键点在于在任何时候，语法分析器都知道在栈上的元素数量是多少。所以我们需要妥善的管理这些元素。我们可以定义一个私有的“栈指针”，这个“栈指针”会跟踪我们现在在栈的哪一层，然后访问对应的寄存器。例如 `Factor` 程序，并不会将数据加载到 `D0` 寄存器中，而是会加载到当前的“栈顶”寄存器中。
 
-  o Try to generate better code in the first place
-                             
-    This approach calls for us to look for  special  cases BEFORE
-    we Emit them.  As a trivial example,  we  should  be  able to
-    identify a constant zero,  and  Emit a CLR instead of a load,
-    or even do nothing at all, as in an add of zero, for example.
-    Closer to home, if we had chosen to recognize the unary minus
-    in Factor  instead of in Expression, we could treat constants
-    like -1 as ordinary constants,  rather  then  generating them
-    from  positive  ones.   None of these things are difficult to
-    deal with ... they only add extra tests in the code, which is
-    why  I  haven't  included them in our program.  The way I see
-    it, once we get to the point that we have a working compiler,
-    generating useful code  that  executes, we can always go back
-    and tweak the thing to tighten up the code produced.   That's
-    why there are Release 2.0's in the world.
+我们要做的事情实际上是将CPU的内存上的栈替换成自己管理的栈，而这个自己管理的栈是由寄存器模拟出来的。对于大部分表达式而言，栈的层次数量并不会超过8，所以我们可以生成质量较高的汇编代码。当然，我们需要处理栈的深度超过8的情形，但这也不是什么大问题。我们只需要将我们自己用寄存器模拟出来的栈存不下的数据溢出到CPU的栈中去，就可以了。对于栈深度超过8的情况，代码不会比我们现在生成的代码更加糟糕，对于栈深度小于8的情况，产生的代码更好。
 
-There IS one more type  of  optimization  worth  mentioning, that
-seems to promise pretty tight code without too much hassle.  It's
-my "invention" in the  sense  that I haven't seen it suggested in
-print anywhere, though I have  no  illusions  that  it's original
-with me.
+上面的这个优化，我已经自己实现过了，只是为了确保这种优化能工作，这样不会对你产生讲解错误。它确实可以工作。在实践中，你不能真把栈的8层都用完。你至少需要一个寄存器用来翻转除法的两个操作数的顺序（真希望68000有一个XTHL，就像8080那样）。对于包含函数调用的表达式，我们也需要一个寄存器来留给它们使用。当然，对于大部分的表达式而言，这种优化将会缩小产生的汇编代码的规模。
 
-This  is to avoid such a heavy use of the stack, by making better
-use of the CPU registers.  Remember back when we were  doing only
-addition  and  subtraction,  that we used registers  D0  and  D1,
-rather than the stack?  It worked, because with  only  those  two
-operations, the "stack" never needs more than two entries.
+所以你可以看到，优化出更好的汇编代码并没有那么困难，但优化确实会增加我们的翻译器的复杂度。我们现在的水平还处理不了这种复杂度。因为这个原因，我强烈建议我们继续忽略掉生成的代码的效率的问题。这样可以保证我们不会为了优化代码而把之前写的代码都扔掉。
 
-Well,  the 68000 has eight data registers.  Why not use them as a
-privately managed stack?  The key is to recognize  that,  at  any
-point in its processing,  the  parser KNOWS how many items are on
-the  stack, so it can indeed manage it properly.  We can define a
-private "stack pointer" that keeps  track  of  which  stack level
-we're at, and addresses the  corresponding  register.   Procedure
-Factor,  for  example,  would  not  cause data to be loaded  into
-register  D0,  but   into  whatever  the  current  "top-of-stack"
-register happened to be.
-
-What we're doing in effect is to replace the CPU's RAM stack with
-a  locally  managed  stack  made  up  of  registers.    For  most
-expressions, the stack level  will  never  exceed eight, so we'll
-get pretty good code out.  Of course, we also  have  to deal with
-those  odd cases where the stack level  DOES  exceed  eight,  but
-that's no problem  either.    We  simply let the stack spill over
-into the CPU  stack.    For  levels  beyond eight, the code is no
-worse  than  what  we're generating now, and for levels less than
-eight, it's considerably better.
-
-For the record, I  have  implemented  this  concept, just to make
-sure  it  works  before  I  mentioned  it to you.  It does.    In
-practice, it turns out that you can't really use all eight levels
-... you need at least one register free to  reverse  the  operand
-order for division  (sure  wish  the  68000 had an XTHL, like the
-8080!).  For expressions  that  include  function calls, we would
-also need a register reserved for them. Still, there  is  a  nice
-improvement in code size for most expressions.
-
-So, you see, getting  better  code  isn't  that difficult, but it
-does add complexity to the our translator ...  complexity  we can
-do without at this point.  For that reason,  I  STRONGLY  suggest
-that we continue to ignore efficiency issues for the rest of this
-series,  secure  in  the knowledge that we can indeed improve the
-code quality without throwing away what we've done.
-
-Next lesson, I'll show you how to deal with variables factors and
-function calls.  I'll also show you just how easy it is to handle
-multicharacter tokens and embedded white space.
+下一篇文章，我们将会处理变量这种 `factor` 以及函数调用。我也会向你展示处理多字符 `token` 和输入中的空格是多么的简单。
