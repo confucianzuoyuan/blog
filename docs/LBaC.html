@@ -594,7 +594,7 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 <p>最后一点：我们这里所遵循的原则是不和P-code以及虚拟CPU指令集搞在一起。当我们写完第一天的代码，我们的代码就可以产生可执行的汇编代码。不过你可能并不喜欢我这里选择的汇编语言：68000汇编语言。我电脑运行的就是这种汇编语言。但是你会发现，将我们的代码修改成能够编译出80x86汇编语言代码的程序，也是很容易的，所以我不觉得这是一个问题。实际上，我很希望某个熟悉8086汇编语言的朋友能够写一份和我的代码所对应的编译器。因为这正是我们所需要的。</p>
 </div>
 <div class="paragraph">
-<p>CRADLE编程语言</p>
+<p>摇篮代码</p>
 </div>
 <div class="paragraph">
 <p>每一个程序都有一些固定的写法&#8230;&#8203;I/O的处理，错误信息的处理等等。我们要写的程序也不例外。我会尽可能将这些样板代码浓缩到最小，这样我们可以集中精力写最重要的部分，而不是迷失在样板代码中。下面的代码就是我们要写出的一些样板代码。包括I/O程序，错误处理程序，一个骨架程序和主程序。我把这些程序叫做我们的摇篮（cradle）。当我们编写其他程序时，会把它们添加到摇篮里面，然后添加一些对这些程序的调用程序。拷贝一份摇篮程序吧，因为我们会在多处使用这些代码。</p>
@@ -604,29 +604,24 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="pascal"><span></span><span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-k">program</span> <span class="tok-n">Cradle</span><span class="tok-o">;</span>
+<pre class="pygments highlight"><code data-lang="pascal"><span></span><span class="tok-k">program</span> <span class="tok-n">Cradle</span><span class="tok-o">;</span>
 
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Constant Declarations }</span>
+<span class="tok-cm">{ 声明常量 }</span>
 
 <span class="tok-k">const</span> <span class="tok-n">TAB</span> <span class="tok-o">=</span> <span class="tok-o">^</span><span class="tok-n">I</span><span class="tok-o">;</span>
 
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Variable Declarations }</span>
+<span class="tok-cm">{ 声明变量 }</span>
 
-<span class="tok-k">var</span> <span class="tok-n">Look</span><span class="tok-o">:</span> <span class="tok-kt">char</span><span class="tok-o">;</span>              <span class="tok-cm">{ Lookahead Character }</span>
+<span class="tok-k">var</span> <span class="tok-n">Look</span><span class="tok-o">:</span> <span class="tok-kt">char</span><span class="tok-o">;</span>              <span class="tok-cm">{ 向前看字符 }</span>
 
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Read New Character From Input Stream }</span>
+<span class="tok-cm">{ 从输入流中读取新的字符 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">GetChar</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
    <span class="tok-nb">Read</span><span class="tok-p">(</span><span class="tok-n">Look</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Report an Error }</span>
+<span class="tok-cm">{ 打印错误信息 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">Error</span><span class="tok-p">(</span><span class="tok-n">s</span><span class="tok-o">:</span> <span class="tok-k">string</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
@@ -634,9 +629,7 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
    <span class="tok-nb">WriteLn</span><span class="tok-p">(</span><span class="tok-o">^</span><span class="tok-n">G</span><span class="tok-o">,</span> <span class="tok-s">&#39;Error: &#39;</span><span class="tok-o">,</span> <span class="tok-n">s</span><span class="tok-o">,</span> <span class="tok-s">&#39;.&#39;</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Report Error and Halt }</span>
+<span class="tok-cm">{ 打印错误信息然后将程序挂起 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">Abort</span><span class="tok-p">(</span><span class="tok-n">s</span><span class="tok-o">:</span> <span class="tok-k">string</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
@@ -644,17 +637,14 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
    <span class="tok-nb">Halt</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Report What Was Expected }</span>
+<span class="tok-cm">{ 打印预期看到的信息 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">Expected</span><span class="tok-p">(</span><span class="tok-n">s</span><span class="tok-o">:</span> <span class="tok-k">string</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
    <span class="tok-nb">Abort</span><span class="tok-p">(</span><span class="tok-n">s</span> <span class="tok-o">+</span> <span class="tok-s">&#39; Expected&#39;</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Match a Specific Input Character }</span>
+<span class="tok-cm">{ 匹配一个特定的输入字符 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">Match</span><span class="tok-p">(</span><span class="tok-n">x</span><span class="tok-o">:</span> <span class="tok-kt">char</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
@@ -662,28 +652,21 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
    <span class="tok-k">else</span> <span class="tok-n">Expected</span><span class="tok-p">(</span><span class="tok-s">&#39;</span><span class="tok-se">&#39;&#39;</span><span class="tok-s">&#39;</span> <span class="tok-o">+</span> <span class="tok-n">x</span> <span class="tok-o">+</span> <span class="tok-s">&#39;</span><span class="tok-se">&#39;&#39;</span><span class="tok-s">&#39;</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Recognize an Alpha Character }</span>
+<span class="tok-cm">{ 识别一个字母 }</span>
 
 <span class="tok-k">function</span> <span class="tok-nf">IsAlpha</span><span class="tok-p">(</span><span class="tok-n">c</span><span class="tok-o">:</span> <span class="tok-kt">char</span><span class="tok-p">)</span><span class="tok-o">:</span> <span class="tok-kt">boolean</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
    <span class="tok-n">IsAlpha</span> <span class="tok-o">:=</span> <span class="tok-nb">upcase</span><span class="tok-p">(</span><span class="tok-n">c</span><span class="tok-p">)</span> <span class="tok-k">in</span> <span class="tok-p">[</span><span class="tok-s">&#39;A&#39;</span><span class="tok-o">..</span><span class="tok-s">&#39;Z&#39;</span><span class="tok-p">]</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-
-<span class="tok-cm">{ Recognize a Decimal Digit }</span>
+<span class="tok-cm">{ 识别一个十进制数字 }</span>
 
 <span class="tok-k">function</span> <span class="tok-nf">IsDigit</span><span class="tok-p">(</span><span class="tok-n">c</span><span class="tok-o">:</span> <span class="tok-kt">char</span><span class="tok-p">)</span><span class="tok-o">:</span> <span class="tok-kt">boolean</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
    <span class="tok-n">IsDigit</span> <span class="tok-o">:=</span> <span class="tok-n">c</span> <span class="tok-k">in</span> <span class="tok-p">[</span><span class="tok-s">&#39;0&#39;</span><span class="tok-o">..</span><span class="tok-s">&#39;9&#39;</span><span class="tok-p">]</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Get an Identifier }</span>
+<span class="tok-cm">{ 获取一个标识符 }</span>
 
 <span class="tok-k">function</span> <span class="tok-nf">GetName</span><span class="tok-o">:</span> <span class="tok-kt">char</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
@@ -692,9 +675,7 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
    <span class="tok-n">GetChar</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Get a Number }</span>
+<span class="tok-cm">{ 获取一个数值 }</span>
 
 <span class="tok-k">function</span> <span class="tok-nf">GetNum</span><span class="tok-o">:</span> <span class="tok-kt">char</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
@@ -703,20 +684,14 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
    <span class="tok-n">GetChar</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Output a String with Tab }</span>
+<span class="tok-cm">{ 输出一个带有制表符TAB的字符串 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">Emit</span><span class="tok-p">(</span><span class="tok-n">s</span><span class="tok-o">:</span> <span class="tok-k">string</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
    <span class="tok-nb">Write</span><span class="tok-p">(</span><span class="tok-n">TAB</span><span class="tok-o">,</span> <span class="tok-n">s</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Output a String with Tab and CRLF }</span>
+<span class="tok-cm">{ 输出带有制表符TAB和CRLF字符的字符串 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">EmitLn</span><span class="tok-p">(</span><span class="tok-n">s</span><span class="tok-o">:</span> <span class="tok-k">string</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
@@ -724,22 +699,18 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
    <span class="tok-nb">WriteLn</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Initialize }</span>
+<span class="tok-cm">{ 初始化 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">Init</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
    <span class="tok-n">GetChar</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Main Program }</span>
+<span class="tok-cm">{ 主程序 }</span>
 
 <span class="tok-k">begin</span>
    <span class="tok-n">Init</span><span class="tok-o">;</span>
-<span class="tok-k">end</span><span class="tok-o">.</span>
-<span class="tok-cm">{--------------------------------------------------------------}</span></code></pre>
+<span class="tok-k">end</span><span class="tok-o">.</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -750,7 +721,7 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-07-09 14:29:42 +0800
+Last updated 2021-07-09 14:41:14 +0800
 </div>
 </div>
 </body>

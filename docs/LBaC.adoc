@@ -42,7 +42,7 @@
 
 最后一点：我们这里所遵循的原则是不和P-code以及虚拟CPU指令集搞在一起。当我们写完第一天的代码，我们的代码就可以产生可执行的汇编代码。不过你可能并不喜欢我这里选择的汇编语言：68000汇编语言。我电脑运行的就是这种汇编语言。但是你会发现，将我们的代码修改成能够编译出80x86汇编语言代码的程序，也是很容易的，所以我不觉得这是一个问题。实际上，我很希望某个熟悉8086汇编语言的朋友能够写一份和我的代码所对应的编译器。因为这正是我们所需要的。
 
-CRADLE编程语言
+摇篮代码
 
 每一个程序都有一些固定的写法...I/O的处理，错误信息的处理等等。我们要写的程序也不例外。我会尽可能将这些样板代码浓缩到最小，这样我们可以集中精力写最重要的部分，而不是迷失在样板代码中。下面的代码就是我们要写出的一些样板代码。包括I/O程序，错误处理程序，一个骨架程序和主程序。我把这些程序叫做我们的摇篮（cradle）。当我们编写其他程序时，会把它们添加到摇篮里面，然后添加一些对这些程序的调用程序。拷贝一份摇篮程序吧，因为我们会在多处使用这些代码。
 
@@ -50,29 +50,24 @@ CRADLE编程语言
 
 [source,pascal]
 ----
-{--------------------------------------------------------------}
 program Cradle;
 
-{--------------------------------------------------------------}
-{ Constant Declarations }
+{ 声明常量 }
 
 const TAB = ^I;
 
-{--------------------------------------------------------------}
-{ Variable Declarations }
+{ 声明变量 }
 
-var Look: char;              { Lookahead Character }
+var Look: char;              { 向前看字符 }
                               
-{--------------------------------------------------------------}
-{ Read New Character From Input Stream }
+{ 从输入流中读取新的字符 }
 
 procedure GetChar;
 begin
    Read(Look);
 end;
 
-{--------------------------------------------------------------}
-{ Report an Error }
+{ 打印错误信息 }
 
 procedure Error(s: string);
 begin
@@ -80,9 +75,7 @@ begin
    WriteLn(^G, 'Error: ', s, '.');
 end;
 
-
-{--------------------------------------------------------------}
-{ Report Error and Halt }
+{ 打印错误信息然后将程序挂起 }
 
 procedure Abort(s: string);
 begin
@@ -90,17 +83,14 @@ begin
    Halt;
 end;
 
-
-{--------------------------------------------------------------}
-{ Report What Was Expected }
+{ 打印预期看到的信息 }
 
 procedure Expected(s: string);
 begin
    Abort(s + ' Expected');
 end;
 
-{--------------------------------------------------------------}
-{ Match a Specific Input Character }
+{ 匹配一个特定的输入字符 }
 
 procedure Match(x: char);
 begin
@@ -108,28 +98,21 @@ begin
    else Expected('''' + x + '''');
 end;
 
-
-{--------------------------------------------------------------}
-{ Recognize an Alpha Character }
+{ 识别一个字母 }
 
 function IsAlpha(c: char): boolean;
 begin
    IsAlpha := upcase(c) in ['A'..'Z'];
 end;
-                              
 
-{--------------------------------------------------------------}
-
-{ Recognize a Decimal Digit }
+{ 识别一个十进制数字 }
 
 function IsDigit(c: char): boolean;
 begin
    IsDigit := c in ['0'..'9'];
 end;
 
-
-{--------------------------------------------------------------}
-{ Get an Identifier }
+{ 获取一个标识符 }
 
 function GetName: char;
 begin
@@ -138,9 +121,7 @@ begin
    GetChar;
 end;
 
-
-{--------------------------------------------------------------}
-{ Get a Number }
+{ 获取一个数值 }
 
 function GetNum: char;
 begin
@@ -149,20 +130,14 @@ begin
    GetChar;
 end;
 
-
-{--------------------------------------------------------------}
-{ Output a String with Tab }
+{ 输出一个带有制表符TAB的字符串 }
 
 procedure Emit(s: string);
 begin
    Write(TAB, s);
 end;
 
-
-
-
-{--------------------------------------------------------------}
-{ Output a String with Tab and CRLF }
+{ 输出带有制表符TAB和CRLF字符的字符串 }
 
 procedure EmitLn(s: string);
 begin
@@ -170,22 +145,18 @@ begin
    WriteLn;
 end;
 
-{--------------------------------------------------------------}
-{ Initialize }
+{ 初始化 }
 
 procedure Init;
 begin
    GetChar;
 end;
 
-
-{--------------------------------------------------------------}
-{ Main Program }
+{ 主程序 }
 
 begin
    Init;
 end.
-{--------------------------------------------------------------}
 ----
 
 简介结束了。将上面的代码拷贝到TP中，然后编译它们。要保证编译能够通过然后正确的运行起来。接下来我们将要开始第一课，也就是表达式的语法分析。
