@@ -163,6 +163,143 @@ end.
 
 NOTE: 如果在Ubuntu下想要进行Pascal编程，可以 `sudo apt-get install fpc` 。
 
+=== C & X86 版本代码
+
+.cradle.h
+[source,c]
+----
+#ifndef _CRADLE_H
+#define _CRADLE_H
+
+#define UPCASE(C) (~(1<<5) & (C))
+#define MAX_BUF 100
+
+static char tmp[MAX_BUF];
+
+char Look;
+
+void GetChar();
+
+void Error(char *s);
+void Abort(char *s);
+void Expected(char *s);
+void Match(char x);
+
+int IsAlpha(char c);
+int IsDigit(char c);
+
+char GetName();
+char GetNum();
+
+void Emit(char *s);
+void EmitLn(char *s);
+
+void Init();
+
+#endif
+----
+
+.cradle.c
+[source,c]
+----
+#include "cradle.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+
+void GetChar() 
+{
+    Look = getchar();
+}
+
+
+void Error(char *s)
+{
+    printf("\nError: %s.", s);
+}
+
+void Abort(char *s)
+{
+    Error(s);
+    exit(1);
+}
+
+
+void Expected(char *s)
+{
+    sprintf(tmp, "%s Expected", s);
+    Abort(tmp);
+}
+
+
+void Match(char x)
+{
+    if(Look == x) {
+        GetChar();
+    } else {
+        sprintf(tmp, "' %c ' ",  x);
+        Expected(tmp);
+    }
+}
+
+
+int IsAlpha(char c)
+{
+    return (UPCASE(c) >= 'A') && (UPCASE(c) <= 'Z');
+} 
+
+int IsDigit(char c)
+{
+    return (c >= '0') && (c <= '9');
+}
+
+
+char GetName()
+{
+    char c = Look;
+
+    if( !IsAlpha(Look)) {
+        sprintf(tmp, "Name");
+        Expected(tmp);
+    }
+
+    GetChar();
+
+    return UPCASE(c);
+}
+
+
+char GetNum()
+{
+    char c = Look;
+
+    if( !IsDigit(Look)) {
+        sprintf(tmp, "Integer");
+        Expected(tmp);
+    }
+
+    GetChar();
+
+    return c;
+}
+
+void Emit(char *s)
+{
+    printf("\t%s", s);
+}
+
+void EmitLn(char *s)
+{
+    Emit(s);
+    printf("\n");
+}
+
+void Init()
+{
+    GetChar();
+}
+----
+
 == 对表达式进行语法分析
 
 让我们开始吧！
@@ -661,3 +798,315 @@ end;
 所以你可以看到，优化出更好的汇编代码并没有那么困难，但优化确实会增加我们的翻译器的复杂度。我们现在的水平还处理不了这种复杂度。因为这个原因，我强烈建议我们继续忽略掉生成的代码的效率的问题。这样可以保证我们不会为了优化代码而把之前写的代码都扔掉。
 
 下一篇文章，我们将会处理变量这种 `factor` 以及函数调用。我也会向你展示处理多字符 `token` 和输入中的空格是多么的简单。
+
+=== C & X86 版本代码
+
+.cradle.h
+[source,c]
+----
+#ifndef _CRADLE_H
+#define _CRADLE_H
+#define UPCASE(C) ((1<<6)| (C))
+
+#define MAX_BUF 100
+char tmp[MAX_BUF];
+
+char Look;
+
+void GetChar();
+
+void Error(char *s);
+void Abort(char *s);
+void Expected(char *s);
+void Match(char x);
+
+int IsAlpha(char c);
+int IsDigit(char c);
+int IsAddop(char c);
+
+char GetName();
+char GetNum();
+
+void Emit(char *s);
+void EmitLn(char *s);
+
+void Init();
+
+#endif
+----
+
+.cradle.c
+[source,c]
+----
+#include "cradle.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+
+void GetChar() 
+{
+    Look = getchar();
+}
+
+
+void Error(char *s)
+{
+    printf("\nError: %s.", s);
+}
+
+void Abort(char *s)
+{
+    Error(s);
+    exit(1);
+}
+
+
+void Expected(char *s)
+{
+    sprintf(tmp, "%s Expected", s);
+    Abort(tmp);
+}
+
+
+void Match(char x)
+{
+    if(Look == x) {
+        GetChar();
+    } else {
+        sprintf(tmp, "' %c ' ",  x);
+        Expected(tmp);
+    }
+}
+
+
+int IsAlpha(char c)
+{
+    return (UPCASE(c) >= 'A') && (UPCASE(c) <= 'Z');
+} 
+
+int IsDigit(char c)
+{
+    return (c >= '0') && (c <= '9');
+}
+
+int IsAddop(char c)
+{
+    return (c == '+') || (c == '-');
+}
+
+char GetName()
+{
+    char c = Look;
+
+    if( !IsAlpha(Look)) {
+        sprintf(tmp, "Name");
+        Expected(tmp);
+    }
+
+    GetChar();
+
+    return UPCASE(c);
+}
+
+
+char GetNum()
+{
+    char c = Look;
+
+    if( !IsDigit(Look)) {
+        sprintf(tmp, "Integer");
+        Expected(tmp);
+    }
+
+    GetChar();
+
+    return c;
+}
+
+void Emit(char *s)
+{
+    printf("\t%s", s);
+}
+
+void EmitLn(char *s)
+{
+    Emit(s);
+    printf("\n");
+}
+
+void Init()
+{
+    GetChar();
+}
+----
+
+.main.c
+[source,c]
+----
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "cradle.h"
+
+void Term();
+void Expression();
+void Add();
+void Substract();
+void Factor();
+
+
+void Multiply()
+{
+    Match('*');
+    Factor();
+    EmitLn("imull (%esp), %eax");
+    /* push of the stack */
+    EmitLn("addl $4, %esp");
+} 
+
+void Divide()
+{
+    Match('/');
+    Factor();
+
+    /* for a expersion like a/b we have eax=b and %(esp)=a
+     * but we need eax=a, and b on the stack 
+     */
+    EmitLn("movl (%esp), %edx");
+    EmitLn("addl $4, %esp");
+
+    EmitLn("pushl %eax");
+
+    EmitLn("movl %edx, %eax");
+
+    /* sign extesnion */
+    EmitLn("sarl $31, %edx");
+    EmitLn("idivl (%esp)");
+    EmitLn("addl $4, %esp");
+
+}
+
+void Factor()
+{
+
+    if(Look == '(') {
+
+        Match('(');
+        Expression();
+        Match(')');
+     } else if(IsAddop(Look)) {
+
+        Match('-');
+        sprintf(tmp,"movl $%c, %%eax", GetNum());
+        EmitLn(tmp);
+        EmitLn("negl %eax");
+
+    } else {
+
+        sprintf(tmp,"movl $%c, %%eax", GetNum());
+        EmitLn(tmp);
+    }
+}
+
+void Term()
+{
+    Factor();
+    while (strchr("*/", Look)) {
+
+        EmitLn("pushl %eax");
+
+        switch(Look)
+        {
+            case '*':
+                Multiply();
+                break;
+            case '/':
+                Divide();
+                break;
+            default:
+                Expected("Mulop");
+        }
+    }
+}
+
+void Expression()
+{
+    if(IsAddop(Look))
+        EmitLn("xor %eax, %eax");
+    else
+        Term();
+
+    while (strchr("+-", Look)) {
+
+        EmitLn("pushl %eax");
+
+        switch(Look)
+        {
+            case '+':
+                Add();
+                break;
+            case '-':
+                Substract();
+                break;
+            default:
+                Expected("Addop");
+        }
+    }
+}
+
+
+void Add()
+{
+    Match('+');
+    Term();
+    EmitLn("addl (%esp), %eax");
+    EmitLn("addl $4, %esp");
+    
+}
+
+
+void Substract()
+{
+    Match('-');
+    Term();
+    EmitLn("subl (%esp), %eax");
+    EmitLn("negl %eax");
+    EmitLn("addl $4, %esp");
+}
+
+
+int main()
+{
+
+    Init();
+    EmitLn(".text");
+    EmitLn(".global _start");
+    EmitLn("_start:");
+    Expression();
+
+    /* return the result */
+    EmitLn("movl %eax, %ebx");
+    EmitLn("movl $1, %eax");
+    EmitLn("int $0x80");
+    return 0;
+}
+----
+
+.Makefile
+[source,makefile]
+----
+IN=main.c cradle.c
+OUT=main
+FLAGS=-Wall -Werror
+
+all:
+	gcc -o $(OUT) $(IN) $(FLAGS)
+
+run:
+	./$(OUT)
+
+.PHONY: clean
+clean:
+	rm $(OUT)
+----
