@@ -1637,69 +1637,56 @@ be:</p>
 <span class="tok-kt">void</span> <span class="tok-nf">Substract</span><span class="tok-p">();</span>
 <span class="tok-kt">void</span> <span class="tok-nf">Factor</span><span class="tok-p">();</span>
 
-
-<span class="tok-kt">void</span> <span class="tok-nf">Multiply</span><span class="tok-p">()</span>
-<span class="tok-p">{</span>
+<span class="tok-kt">void</span> <span class="tok-nf">Multiply</span><span class="tok-p">()</span> <span class="tok-p">{</span>
     <span class="tok-n">Match</span><span class="tok-p">(</span><span class="tok-sc">&#39;*&#39;</span><span class="tok-p">);</span>
     <span class="tok-n">Factor</span><span class="tok-p">();</span>
-    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;imull (%esp), %eax&quot;</span><span class="tok-p">);</span>
-    <span class="tok-cm">/* push of the stack */</span>
-    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;addl $4, %esp&quot;</span><span class="tok-p">);</span>
+    <span class="tok-c1">// 将栈顶元素和rax中的数相乘,然后结果存入rax中</span>
+    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;imul (%rsp), %rax&quot;</span><span class="tok-p">);</span>
+    <span class="tok-c1">// 将栈顶元素弹出</span>
+    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;add $8, %rsp&quot;</span><span class="tok-p">);</span>
 <span class="tok-p">}</span>
 
-<span class="tok-kt">void</span> <span class="tok-nf">Divide</span><span class="tok-p">()</span>
-<span class="tok-p">{</span>
+<span class="tok-kt">void</span> <span class="tok-nf">Divide</span><span class="tok-p">()</span> <span class="tok-p">{</span>
     <span class="tok-n">Match</span><span class="tok-p">(</span><span class="tok-sc">&#39;/&#39;</span><span class="tok-p">);</span>
     <span class="tok-n">Factor</span><span class="tok-p">();</span>
 
-    <span class="tok-cm">/* for a expersion like a/b we have eax=b and %(esp)=a</span>
-<span class="tok-cm">     * but we need eax=a, and b on the stack</span>
-<span class="tok-cm">     */</span>
-    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;movl (%esp), %edx&quot;</span><span class="tok-p">);</span>
-    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;addl $4, %esp&quot;</span><span class="tok-p">);</span>
+    <span class="tok-c1">// 此时栈顶元素是上面的Factor读取的数，将这个数存入rdx寄存器中</span>
+    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;mov (%rsp), %rdx&quot;</span><span class="tok-p">);</span>
+    <span class="tok-c1">// 将栈顶元素弹出</span>
+    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;add $8, %rsp&quot;</span><span class="tok-p">);</span>
 
-    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;pushl %eax&quot;</span><span class="tok-p">);</span>
+    <span class="tok-c1">// 将rax寄存器中的值压栈</span>
+    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;push %rax&quot;</span><span class="tok-p">);</span>
 
-    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;movl %edx, %eax&quot;</span><span class="tok-p">);</span>
+    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;mov %rdx, %rax&quot;</span><span class="tok-p">);</span>
 
-    <span class="tok-cm">/* sign extesnion */</span>
-    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;sarl $31, %edx&quot;</span><span class="tok-p">);</span>
-    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;idivl (%esp)&quot;</span><span class="tok-p">);</span>
-    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;addl $4, %esp&quot;</span><span class="tok-p">);</span>
-
+    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;sar $31, %rdx&quot;</span><span class="tok-p">);</span>
+    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;idivq (%rsp)&quot;</span><span class="tok-p">);</span>
+    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;add $8, %rsp&quot;</span><span class="tok-p">);</span>
 <span class="tok-p">}</span>
 
-<span class="tok-kt">void</span> <span class="tok-nf">Factor</span><span class="tok-p">()</span>
-<span class="tok-p">{</span>
-
-    <span class="tok-k">if</span><span class="tok-p">(</span><span class="tok-n">Look</span> <span class="tok-o">==</span> <span class="tok-sc">&#39;(&#39;</span><span class="tok-p">)</span> <span class="tok-p">{</span>
-
+<span class="tok-kt">void</span> <span class="tok-nf">Factor</span><span class="tok-p">()</span> <span class="tok-p">{</span>
+    <span class="tok-k">if</span> <span class="tok-p">(</span><span class="tok-n">Look</span> <span class="tok-o">==</span> <span class="tok-sc">&#39;(&#39;</span><span class="tok-p">)</span> <span class="tok-p">{</span>
         <span class="tok-n">Match</span><span class="tok-p">(</span><span class="tok-sc">&#39;(&#39;</span><span class="tok-p">);</span>
         <span class="tok-n">Expression</span><span class="tok-p">();</span>
         <span class="tok-n">Match</span><span class="tok-p">(</span><span class="tok-sc">&#39;)&#39;</span><span class="tok-p">);</span>
-     <span class="tok-p">}</span> <span class="tok-k">else</span> <span class="tok-k">if</span><span class="tok-p">(</span><span class="tok-n">IsAddop</span><span class="tok-p">(</span><span class="tok-n">Look</span><span class="tok-p">))</span> <span class="tok-p">{</span>
-
+    <span class="tok-p">}</span> <span class="tok-k">else</span> <span class="tok-k">if</span> <span class="tok-p">(</span><span class="tok-n">IsAddop</span><span class="tok-p">(</span><span class="tok-n">Look</span><span class="tok-p">))</span> <span class="tok-p">{</span>
         <span class="tok-n">Match</span><span class="tok-p">(</span><span class="tok-sc">&#39;-&#39;</span><span class="tok-p">);</span>
-        <span class="tok-n">sprintf</span><span class="tok-p">(</span><span class="tok-n">tmp</span><span class="tok-p">,</span><span class="tok-s">&quot;movl $%c, %%eax&quot;</span><span class="tok-p">,</span> <span class="tok-n">GetNum</span><span class="tok-p">());</span>
+        <span class="tok-n">sprintf</span><span class="tok-p">(</span><span class="tok-n">tmp</span><span class="tok-p">,</span> <span class="tok-s">&quot;mov $%c, %%rax&quot;</span><span class="tok-p">,</span> <span class="tok-n">GetNum</span><span class="tok-p">());</span>
         <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-n">tmp</span><span class="tok-p">);</span>
-        <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;negl %eax&quot;</span><span class="tok-p">);</span>
-
+        <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;neg %rax&quot;</span><span class="tok-p">);</span>
     <span class="tok-p">}</span> <span class="tok-k">else</span> <span class="tok-p">{</span>
-
-        <span class="tok-n">sprintf</span><span class="tok-p">(</span><span class="tok-n">tmp</span><span class="tok-p">,</span><span class="tok-s">&quot;movl $%c, %%eax&quot;</span><span class="tok-p">,</span> <span class="tok-n">GetNum</span><span class="tok-p">());</span>
+        <span class="tok-n">sprintf</span><span class="tok-p">(</span><span class="tok-n">tmp</span><span class="tok-p">,</span> <span class="tok-s">&quot;mov $%c, %%rax&quot;</span><span class="tok-p">,</span> <span class="tok-n">GetNum</span><span class="tok-p">());</span>
         <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-n">tmp</span><span class="tok-p">);</span>
     <span class="tok-p">}</span>
 <span class="tok-p">}</span>
 
-<span class="tok-kt">void</span> <span class="tok-nf">Term</span><span class="tok-p">()</span>
-<span class="tok-p">{</span>
+<span class="tok-kt">void</span> <span class="tok-nf">Term</span><span class="tok-p">()</span> <span class="tok-p">{</span>
     <span class="tok-n">Factor</span><span class="tok-p">();</span>
     <span class="tok-k">while</span> <span class="tok-p">(</span><span class="tok-n">strchr</span><span class="tok-p">(</span><span class="tok-s">&quot;*/&quot;</span><span class="tok-p">,</span> <span class="tok-n">Look</span><span class="tok-p">))</span> <span class="tok-p">{</span>
+        <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;push %rax&quot;</span><span class="tok-p">);</span>
 
-        <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;pushl %eax&quot;</span><span class="tok-p">);</span>
-
-        <span class="tok-k">switch</span><span class="tok-p">(</span><span class="tok-n">Look</span><span class="tok-p">)</span>
-        <span class="tok-p">{</span>
+        <span class="tok-k">switch</span><span class="tok-p">(</span><span class="tok-n">Look</span><span class="tok-p">)</span> <span class="tok-p">{</span>
             <span class="tok-k">case</span> <span class="tok-sc">&#39;*&#39;</span><span class="tok-o">:</span>
                 <span class="tok-n">Multiply</span><span class="tok-p">();</span>
                 <span class="tok-k">break</span><span class="tok-p">;</span>
@@ -1712,19 +1699,17 @@ be:</p>
     <span class="tok-p">}</span>
 <span class="tok-p">}</span>
 
-<span class="tok-kt">void</span> <span class="tok-nf">Expression</span><span class="tok-p">()</span>
-<span class="tok-p">{</span>
-    <span class="tok-k">if</span><span class="tok-p">(</span><span class="tok-n">IsAddop</span><span class="tok-p">(</span><span class="tok-n">Look</span><span class="tok-p">))</span>
-        <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;xor %eax, %eax&quot;</span><span class="tok-p">);</span>
+<span class="tok-kt">void</span> <span class="tok-nf">Expression</span><span class="tok-p">()</span> <span class="tok-p">{</span>
+    <span class="tok-k">if</span> <span class="tok-p">(</span><span class="tok-n">IsAddop</span><span class="tok-p">(</span><span class="tok-n">Look</span><span class="tok-p">))</span>
+        <span class="tok-c1">// rax清零</span>
+        <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;xor %rax, %rax&quot;</span><span class="tok-p">);</span>
     <span class="tok-k">else</span>
         <span class="tok-n">Term</span><span class="tok-p">();</span>
 
     <span class="tok-k">while</span> <span class="tok-p">(</span><span class="tok-n">strchr</span><span class="tok-p">(</span><span class="tok-s">&quot;+-&quot;</span><span class="tok-p">,</span> <span class="tok-n">Look</span><span class="tok-p">))</span> <span class="tok-p">{</span>
+        <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;push %rax&quot;</span><span class="tok-p">);</span>
 
-        <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;pushl %eax&quot;</span><span class="tok-p">);</span>
-
-        <span class="tok-k">switch</span><span class="tok-p">(</span><span class="tok-n">Look</span><span class="tok-p">)</span>
-        <span class="tok-p">{</span>
+        <span class="tok-k">switch</span><span class="tok-p">(</span><span class="tok-n">Look</span><span class="tok-p">)</span> <span class="tok-p">{</span>
             <span class="tok-k">case</span> <span class="tok-sc">&#39;+&#39;</span><span class="tok-o">:</span>
                 <span class="tok-n">Add</span><span class="tok-p">();</span>
                 <span class="tok-k">break</span><span class="tok-p">;</span>
@@ -1737,40 +1722,29 @@ be:</p>
     <span class="tok-p">}</span>
 <span class="tok-p">}</span>
 
-
-<span class="tok-kt">void</span> <span class="tok-nf">Add</span><span class="tok-p">()</span>
-<span class="tok-p">{</span>
+<span class="tok-kt">void</span> <span class="tok-nf">Add</span><span class="tok-p">()</span> <span class="tok-p">{</span>
     <span class="tok-n">Match</span><span class="tok-p">(</span><span class="tok-sc">&#39;+&#39;</span><span class="tok-p">);</span>
     <span class="tok-n">Term</span><span class="tok-p">();</span>
-    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;addl (%esp), %eax&quot;</span><span class="tok-p">);</span>
-    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;addl $4, %esp&quot;</span><span class="tok-p">);</span>
-
+    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;add (%rsp), %rax&quot;</span><span class="tok-p">);</span>
+    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;add $8, %rsp&quot;</span><span class="tok-p">);</span>
 <span class="tok-p">}</span>
 
-
-<span class="tok-kt">void</span> <span class="tok-nf">Substract</span><span class="tok-p">()</span>
-<span class="tok-p">{</span>
+<span class="tok-kt">void</span> <span class="tok-nf">Substract</span><span class="tok-p">()</span> <span class="tok-p">{</span>
     <span class="tok-n">Match</span><span class="tok-p">(</span><span class="tok-sc">&#39;-&#39;</span><span class="tok-p">);</span>
     <span class="tok-n">Term</span><span class="tok-p">();</span>
-    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;subl (%esp), %eax&quot;</span><span class="tok-p">);</span>
-    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;negl %eax&quot;</span><span class="tok-p">);</span>
-    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;addl $4, %esp&quot;</span><span class="tok-p">);</span>
+    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;sub (%rsp), %rax&quot;</span><span class="tok-p">);</span>
+    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;neg %rax&quot;</span><span class="tok-p">);</span>
+    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;add $8, %rsp&quot;</span><span class="tok-p">);</span>
 <span class="tok-p">}</span>
 
-
-<span class="tok-kt">int</span> <span class="tok-nf">main</span><span class="tok-p">()</span>
-<span class="tok-p">{</span>
-
+<span class="tok-kt">int</span> <span class="tok-nf">main</span><span class="tok-p">()</span> <span class="tok-p">{</span>
     <span class="tok-n">Init</span><span class="tok-p">();</span>
-    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;.text&quot;</span><span class="tok-p">);</span>
-    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;.global _start&quot;</span><span class="tok-p">);</span>
-    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;_start:&quot;</span><span class="tok-p">);</span>
+    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;.globl main&quot;</span><span class="tok-p">);</span>
+    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;main:&quot;</span><span class="tok-p">);</span>
     <span class="tok-n">Expression</span><span class="tok-p">();</span>
 
-    <span class="tok-cm">/* return the result */</span>
-    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;movl %eax, %ebx&quot;</span><span class="tok-p">);</span>
-    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;movl $1, %eax&quot;</span><span class="tok-p">);</span>
-    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;int $0x80&quot;</span><span class="tok-p">);</span>
+    <span class="tok-c1">// 将rax值返回</span>
+    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&quot;ret&quot;</span><span class="tok-p">);</span>
     <span class="tok-k">return</span> <span class="tok-mi">0</span><span class="tok-p">;</span>
 <span class="tok-p">}</span></code></pre>
 </div>
@@ -1799,7 +1773,7 @@ be:</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-07-10 18:27:29 +0800
+Last updated 2021-07-11 11:55:42 +0800
 </div>
 </div>
 </body>
