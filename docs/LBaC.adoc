@@ -955,69 +955,56 @@ void Add();
 void Substract();
 void Factor();
 
-
-void Multiply()
-{
+void Multiply() {
     Match('*');
     Factor();
-    EmitLn("imull (%esp), %eax");
-    /* push of the stack */
-    EmitLn("addl $4, %esp");
-} 
+    // 将栈顶元素和rax中的数相乘,然后结果存入rax中
+    EmitLn("imul (%rsp), %rax");
+    // 将栈顶元素弹出
+    EmitLn("add $8, %rsp");
+}
 
-void Divide()
-{
+void Divide() {
     Match('/');
     Factor();
 
-    /* for a expersion like a/b we have eax=b and %(esp)=a
-     * but we need eax=a, and b on the stack 
-     */
-    EmitLn("movl (%esp), %edx");
-    EmitLn("addl $4, %esp");
+    // 此时栈顶元素是上面的Factor读取的数，将这个数存入rdx寄存器中
+    EmitLn("mov (%rsp), %rdx");
+    // 将栈顶元素弹出
+    EmitLn("add $8, %rsp");
 
-    EmitLn("pushl %eax");
+    // 将rax寄存器中的值压栈
+    EmitLn("push %rax");
 
-    EmitLn("movl %edx, %eax");
+    EmitLn("mov %rdx, %rax");
 
-    /* sign extesnion */
-    EmitLn("sarl $31, %edx");
-    EmitLn("idivl (%esp)");
-    EmitLn("addl $4, %esp");
-
+    EmitLn("sar $31, %rdx");
+    EmitLn("idivq (%rsp)");
+    EmitLn("add $8, %rsp");
 }
 
-void Factor()
-{
-
-    if(Look == '(') {
-
+void Factor() {
+    if (Look == '(') {
         Match('(');
         Expression();
         Match(')');
-     } else if(IsAddop(Look)) {
-
+    } else if (IsAddop(Look)) {
         Match('-');
-        sprintf(tmp,"movl $%c, %%eax", GetNum());
+        sprintf(tmp, "mov $%c, %%rax", GetNum());
         EmitLn(tmp);
-        EmitLn("negl %eax");
-
+        EmitLn("neg %rax");
     } else {
-
-        sprintf(tmp,"movl $%c, %%eax", GetNum());
+        sprintf(tmp, "mov $%c, %%rax", GetNum());
         EmitLn(tmp);
     }
 }
 
-void Term()
-{
+void Term() {
     Factor();
     while (strchr("*/", Look)) {
+        EmitLn("push %rax");
 
-        EmitLn("pushl %eax");
-
-        switch(Look)
-        {
+        switch(Look) {
             case '*':
                 Multiply();
                 break;
@@ -1030,19 +1017,17 @@ void Term()
     }
 }
 
-void Expression()
-{
-    if(IsAddop(Look))
-        EmitLn("xor %eax, %eax");
+void Expression() {
+    if (IsAddop(Look))
+        // rax清零
+        EmitLn("xor %rax, %rax");
     else
         Term();
 
     while (strchr("+-", Look)) {
+        EmitLn("push %rax");
 
-        EmitLn("pushl %eax");
-
-        switch(Look)
-        {
+        switch(Look) {
             case '+':
                 Add();
                 break;
@@ -1055,40 +1040,29 @@ void Expression()
     }
 }
 
-
-void Add()
-{
+void Add() {
     Match('+');
     Term();
-    EmitLn("addl (%esp), %eax");
-    EmitLn("addl $4, %esp");
-    
+    EmitLn("add (%rsp), %rax");
+    EmitLn("add $8, %rsp");
 }
 
-
-void Substract()
-{
+void Substract() {
     Match('-');
     Term();
-    EmitLn("subl (%esp), %eax");
-    EmitLn("negl %eax");
-    EmitLn("addl $4, %esp");
+    EmitLn("sub (%rsp), %rax");
+    EmitLn("neg %rax");
+    EmitLn("add $8, %rsp");
 }
 
-
-int main()
-{
-
+int main() {
     Init();
-    EmitLn(".text");
-    EmitLn(".global _start");
-    EmitLn("_start:");
+    EmitLn(".globl main");
+    EmitLn("main:");
     Expression();
 
-    /* return the result */
-    EmitLn("movl %eax, %ebx");
-    EmitLn("movl $1, %eax");
-    EmitLn("int $0x80");
+    // 将rax值返回
+    EmitLn("ret");
     return 0;
 }
 ----
