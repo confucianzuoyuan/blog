@@ -1767,13 +1767,29 @@ be:</p>
 	rm <span class="tok-k">$(</span>OUT<span class="tok-k">)</span></code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>运行</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="bash"><span></span>$ make
+$ ./main &gt; tmp.s
+<span class="tok-o">(</span><span class="tok-m">1</span>+3<span class="tok-o">)</span>/1
+$ gcc -o tmp tmp.s
+$ ./tmp
+$ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>就可以看到输出结果了。</p>
+</div>
 </div>
 </div>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-07-11 11:55:42 +0800
+Last updated 2021-07-11 12:13:32 +0800
 </div>
 </div>
 </body>
