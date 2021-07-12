@@ -545,7 +545,7 @@ pre.pygments .tok-il { color: #666666 } /* Literal.Number.Integer.Long */
 <li><a href="#_函数">3.3. 函数</a></li>
 <li><a href="#_更多有关错误处理">3.4. 更多有关错误处理</a></li>
 <li><a href="#_赋值语句">3.5. 赋值语句</a></li>
-<li><a href="#_多字符记号">3.6. 多字符记号</a></li>
+<li><a href="#_多字符token">3.6. 多字符token</a></li>
 <li><a href="#_空白符">3.7. 空白符</a></li>
 <li><a href="#_c_x86_版本代码_3">3.8. C &amp; X86 版本代码</a></li>
 </ul>
@@ -1814,20 +1814,20 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
 <div class="sect2">
 <h3 id="_简介_2">3.1. 简介</h3>
 <div class="paragraph">
-<p>在上一部分，我们分析了用于一般数学表达式的语法分析和翻译技术。我们以一个可以处理满足以下两个约束的任意复杂表达式的小型语法分析器来结束上一章节，</p>
+<p>在上一部分，我们分析了用于一般数学表达式的语法分析和翻译技术。我们以一个可以处理满足以下两个约束的任意复杂表达式的小型语法分析器来结束上一章节，不过有两个限制：</p>
 </div>
 <div class="olist arabic">
 <ol class="arabic">
 <li>
-<p>只有数学因式，没有变量</p>
+<p>只有数值Factor，没有变量</p>
 </li>
 <li>
-<p>数学因式限制为单个数字</p>
+<p>数值Factor限制为单个数字</p>
 </li>
 </ol>
 </div>
 <div class="paragraph">
-<p>在这一章节，我们将除去以上约束。我们将扩展我们已做的一切，包括赋值语句和函数调用。记住，虽然第二个约束是我们自己定的-一个让我们更方便，更容易设计，更能集中基本原理的约束。就如你接下去所见的，这个约束是很容易删除的，所以不要太过担心它。我们使用这个技术是为了我们服务，请你相信当我们做好准备时就能把约束去掉。</p>
+<p>在这一章节，我们将除去以上约束。我们将扩展我们已做的一切，包括赋值语句和函数调用。记住，虽然第二个约束是我们自己定的&#8230;&#8203;一个让我们更方便，更容易设计，更能集中基本原理的约束。就如你接下去所见的，这个约束是很容易删除的，所以不要太过担心它。我们使用这个技术是为了我们服务，请你相信当我们做好准备时就能把约束去掉。</p>
 </div>
 </div>
 <div class="sect2">
@@ -1844,7 +1844,7 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
 <p>难以想像不能处理含有变量表达式的语法分析器会有多好。幸运地是，这很容易实现的。</p>
 </div>
 <div class="paragraph">
-<p>请回想我们当前的语法分析器，它允许有两种因式：常整数和具有圆括弧的表达式。用BNF记号表述如下：</p>
+<p>请回想我们当前的语法分析器，它允许有两种factor：整数常量和具有圆括号的表达式。用BNF语法表述如下：</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1852,10 +1852,10 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>这里，'|'代表&#8217;or'(或)，意味着对于factor(因式)两种形式的任一种形式都是合法的。应该也记得，对于识别这两种不同形式我们并没有困难。先行字符判断'('为一种情形，而一个数字则属于另一种情形。</p>
+<p>这里， <code>|</code> 代表 <code>or</code> (或)，意味着对于factor两种形式的任一种形式都是合法的。应该也记得，对于识别这两种不同形式我们并没有困难。向前看字符判断 <code>(</code> 为一种情形，而一个数字则属于另一种情形。</p>
 </div>
 <div class="paragraph">
-<p>大概你不会再吃惊，一个变量也是另一种形式的因式。所以我们扩展上面的BNF如下：</p>
+<p>大概你不会再吃惊，一个变量也是另一种形式的factor。所以我们扩展上面的BNF语法如下：</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1863,13 +1863,13 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>同样，这样不会产生二义性：如果先行字符是一个字母，我们就可知接下来的是一个变量；如果是一个数字，我们得到的是一个数字。当我们翻译一个数时，我们就生成一条LOAD(装入)这个数的代码，就如把一个立即数送入D0。现在我们也是一样，只是装入的是一个变量。</p>
+<p>同样，这样不会产生二义性：如果向前看字符是一个字母，我们就可知接下来的是一个变量；如果是一个数字，我们得到的是一个数字。当我们翻译一个数时，我们就生成一条加载这个数的代码，就如把一个立即数送入 <code>D0</code> 寄存器。现在我们也是一样，只是加载的是一个变量。</p>
 </div>
 <div class="paragraph">
 <p>一个在代码生成中兼有的复杂性起源于这样一个事实：大多数68000操作系统，包括我所用的SK*DOS都要求把代码写成"position-independent"(位置独立)形式，这意味着所有一切都是PC相关的。</p>
 </div>
 <div class="paragraph">
-<p>装入一个变量的汇编语言形式如下：</p>
+<p>加载一个变量的汇编语言形式如下：</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1877,12 +1877,11 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>这里X当然是一个变量名。为了增加语法分析器分析变量表达式的能力，让我们把当前版本的Factor函数改为：</p>
+<p>这里 <code>X</code> 当然是一个变量名。为了增加语法分析器分析变量表达式的能力，让我们把当前版本的Factor函数改为：</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="pascal"><span></span><span class="tok-cm">{---------------------------------------------------------------}</span>
-<span class="tok-cm">{ Parse and Translate a Math Factor }</span>
+<pre class="pygments highlight"><code data-lang="pascal"><span></span><span class="tok-cm">{ 对数学Factor进行语法分析和翻译 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">Expression</span><span class="tok-o">;</span> <span class="tok-kp">Forward</span><span class="tok-o">;</span>
 
@@ -1897,8 +1896,7 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
       <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&#39;MOVE &#39;</span> <span class="tok-o">+</span> <span class="tok-n">GetName</span> <span class="tok-o">+</span> <span class="tok-s">&#39;(PC),D0&#39;</span><span class="tok-p">)</span>
    <span class="tok-k">else</span>
       <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&#39;MOVE #&#39;</span> <span class="tok-o">+</span> <span class="tok-n">GetNum</span> <span class="tok-o">+</span> <span class="tok-s">&#39;,D0&#39;</span><span class="tok-p">)</span><span class="tok-o">;</span>
-<span class="tok-k">end</span><span class="tok-o">;</span>
-<span class="tok-cm">{--------------------------------------------------------------}</span></code></pre>
+<span class="tok-k">end</span><span class="tok-o">;</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1911,13 +1909,13 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
 <div class="sect2">
 <h3 id="_函数">3.3. 函数</h3>
 <div class="paragraph">
-<p>这里还有一种许多编程语言支持的常见因式类型：函数调用。对于我们来说要处理好函数问题现在还为时过早，因我们还不能处理参数传递问题。甚至，一个“真实”的语言包含着支持超过一种类型的机制，其中一种类型就是函数类型。我们也还不能处理这个问题。但出于以下两个理由，我仍想现在就实现函数：首先，它可以让我们概括语法分析程序，在某些方面与最终的语法分析程序形式很相近，第二，它也引出了一个新的十分有价值去讨论的问题。</p>
+<p>这里还有一种许多编程语言支持的常见factor类型：函数调用。对于我们来说要处理好函数问题现在还为时过早，因为我们还不能处理参数传递问题。甚至，一个“真实”的语言包含着支持超过一种类型的机制，其中一种类型就是函数类型。我们也还不能处理这个问题。但出于以下两个理由，我仍想现在就实现函数：首先，它可以让我们汇总语法分析程序，它在某些方面与最终的语法分析程序形式很相近，第二，它也引出了一个新的十分有价值去讨论的问题。</p>
 </div>
 <div class="paragraph">
-<p>直到现在，我们已经有能力写一个称为“predictive parser”(预测语法分析器)的程序。这就是说，无论在任何一点上，我们都能根据先行字符来正确的知道接下来要做什么。(译：就是先行预测技术)但是当我们加入函数后，它就不适用了。因为每种语言都有其命名规则来构造一个合法的标识符。现在，我们简单把标识符规定了一个字母 <code>'a'&#8230;&#8203;'z'</code> 。问题就在于一个变量名和一个函数名有着相同的命名规则。那么我们怎样区分是标识符还是函数呢？一种方法是在他们使用之前都要先声明。Pascal语言采用的就是这种方法，另一种方法是我们可以要求一个函数后跟一个(也许是空)的参数列表。而这种规则被C语言采用。</p>
+<p>直到现在，我们已经有能力写一个称为“predictive parser”(预测语法分析器)的程序。这就是说，无论在任何一点上，我们都能根据向前看字符来正确的知道接下来要做什么。但是当我们加入函数后，它就不适用了。因为每种语言都有其命名规则来构造一个合法的标识符。现在，我们简单把标识符规定了一个字母 <code>'a'&#8230;&#8203;'z'</code> 。问题就在于一个变量名和一个函数名有着相同的命名规则。那么我们怎样区分是标识符还是函数呢？一种方法是在他们使用之前都要先声明。Pascal语言采用的就是这种方法，另一种方法是我们可以要求一个函数后跟一个(也许是空)的参数列表。而这种规则被C语言采用。</p>
 </div>
 <div class="paragraph">
-<p>因为我们设计中至今没有一个声明类型的机制，所以我们采用C的规则。由于我们也没有处理参数的机制，我们只能处理空参数列表的函数，因此函数调用将有已下形式：</p>
+<p>因为我们设计中至今没有一个声明类型的机制，所以我们采用C语言的规则。由于我们也没有处理参数的机制，我们只能处理空参数列表的函数，因此函数调用将有已下形式：</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1928,12 +1926,11 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
 <p>因为我们不处理参数，所有什么也不用做，除了调用函数，我们所要做的是用一个BSR(子程序调用)命令来取代一个MOVE。</p>
 </div>
 <div class="paragraph">
-<p>既然在Factor过程测试，当先行字符是一个字母时存在着两个可能分支，所有我们把其分开独立两个过程。修改Factor过程如下：</p>
+<p>既然在Factor函数的测试中，当向前看字符是一个字母时存在着两个可能的分支，所有我们把它分开成两个独立的过程。修改Factor函数如下：</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="pascal"><span></span><span class="tok-cm">{---------------------------------------------------------------}</span>
-<span class="tok-cm">{ Parse and Translate a Math Factor }</span>
+<pre class="pygments highlight"><code data-lang="pascal"><span></span><span class="tok-cm">{ 对数学Factor进行语法分析然后翻译 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">Expression</span><span class="tok-o">;</span> <span class="tok-kp">Forward</span><span class="tok-o">;</span>
 
@@ -1948,8 +1945,7 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
       <span class="tok-n">Ident</span>
    <span class="tok-k">else</span>
       <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&#39;MOVE #&#39;</span> <span class="tok-o">+</span> <span class="tok-n">GetNum</span> <span class="tok-o">+</span> <span class="tok-s">&#39;,D0&#39;</span><span class="tok-p">)</span><span class="tok-o">;</span>
-<span class="tok-k">end</span><span class="tok-o">;</span>
-<span class="tok-cm">{--------------------------------------------------------------}</span></code></pre>
+<span class="tok-k">end</span><span class="tok-o">;</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -1957,8 +1953,7 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="pascal"><span></span><span class="tok-cm">{---------------------------------------------------------------}</span>
-<span class="tok-cm">{ Parse and Translate an Identifier }</span>
+<pre class="pygments highlight"><code data-lang="pascal"><span></span><span class="tok-cm">{ 语法分析和翻译一个标识符 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">Ident</span><span class="tok-o">;</span>
 <span class="tok-k">var</span> <span class="tok-n">Name</span><span class="tok-o">:</span> <span class="tok-kt">char</span><span class="tok-o">;</span>
@@ -1971,18 +1966,17 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
       <span class="tok-k">end</span>
    <span class="tok-k">else</span>
       <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&#39;MOVE &#39;</span> <span class="tok-o">+</span> <span class="tok-n">Name</span> <span class="tok-o">+</span> <span class="tok-s">&#39;(PC),D0&#39;</span><span class="tok-p">)</span>
-<span class="tok-k">end</span><span class="tok-o">;</span>
-<span class="tok-cm">{---------------------------------------------------------------}</span></code></pre>
+<span class="tok-k">end</span><span class="tok-o">;</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>好，编译的测试这个版本。它能分析所有合法的表达式吗？它能正确地标志一个错误的形式吗？</p>
+<p>好，编译然后测试这个版本。它能分析所有合法的表达式吗？它能正确地标志一个错误的形式吗？</p>
 </div>
 <div class="paragraph">
-<p>我们应注意最重要的一点是即使我们不再有一个预测语法分析程序，对于我们采用的递归下降方法也不会增添任何复杂性。这样，当Factor过程发现一个标识符(字母)，它也不知道它是一个变量名还是一个函数名，这并不是它所真正关心的。Factor过程只是简单地把这个问题传给Ident过程，并让它去断定。过程Ident则依次读入标识符，并读多一个字符去决定它现在处理的标识符是哪种类型。</p>
+<p>我们应注意最重要的一点是即使我们不再有一个预测语法分析器，对于我们采用的递归下降方法也不会增添任何复杂性。这样，当Factor函数发现一个标识符(字母)，它也不知道它是一个变量名还是一个函数名，这并不是它所真正关心的。Factor函数只是简单地把这个问题传给Ident函数，并让它去判断。Ident函数则依次读入标识符，并多读一个字符去决定它现在处理的标识符是哪种类型。</p>
 </div>
 <div class="paragraph">
-<p>紧记这个方法。这是一个非常有用的概念，而且无论什么时候当你遇到二义性情形要求先行扫瞄时，它都应该被采用即使你不得不要先行扫描几个记号，这个原理就可以适用。</p>
+<p>紧记这个方法。这是一个非常有用的概念，而且无论什么时候当你遇到二义性情形要求先行扫描时，它都应该被采用。即使你不得不先行扫描几个token，这个原理依然可以适用。</p>
 </div>
 </div>
 <div class="sect2">
@@ -1991,13 +1985,13 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
 <p>当我们在谈论基本原理时，这里还有另一个重要的问题应指出：错误处理。注意到虽然我们做的语法分析器可以正确地拒绝(译：almost，几乎，下面会有解释为什么用almost)每一个我们送给它的畸形表达式，并有一个有意义的出错信息，我们本不用做太多工作让其发生。事实上，整个语法分析程序本质上(由Ident到Expression)只有两个有关错误程序调用。甚至这些都是不必要的&#8230;&#8203;如果你再看看Term和Expression代码，你会发现这些相关的语句都是不可达的。我把它们放入只是早期出于保险考虑，但现在它们不再需要。为什么你现在不删除它们呢？</p>
 </div>
 <div class="paragraph">
-<p>那么我们如何更自由地获得好的错误处理呢？这很简单，我已经小心地避免直接用函数GetChar读一个字符。取代直接使用GetChar，在错误处理上我依靠GetName，GetNum，和Match去为我完成错误检测。仔细的读者也应该注意到一些Match调用(例如，在Add和Subtract中)其实是不需要的。因为我们已经知道当我们在哪里得到的字符会是什么字符&#8230;&#8203;但是让它们留在那里会让结构更为对称，而且一般用Match代替GetChar是一个好的设计规则。</p>
+<p>那么我们如何更自由地获得好的错误处理呢？这很简单，我已经小心地避免直接用函数GetChar读一个字符。取代直接使用GetChar，在错误处理上我依靠GetName，GetNum，和Match去为我完成错误检测。仔细的读者也应该注意到一些Match调用(例如，在Add和Subtract中)其实是不需要的。因为我们已经知道我们得到的字符会是什么字符&#8230;&#8203;但是让它们留在那里会让结构更为对称，而且一般用Match代替GetChar是一个好的设计规则。</p>
 </div>
 <div class="paragraph">
 <p>我在上面用了一个"almost"。有一种情形是我们错误处理想解决的。迄今为止，我们还没有让我们编译器知道一行结束的特征是什么，也没有告诉当嵌入空格时编译器该如何做。所以一个空白符(或其它不属于可识别字符集的其它字符)都会使我们的编译器忽略还没识别的字符而终止，在这一点上它也许可以被证明是一个合理的行为。但是在一个真正的编译器中，通常有另一个语句跟在一个可以工作的语句后，以至任何一个不认为是我们表达式一部分的字符将被使用或是被拒绝为下个表达式。</p>
 </div>
 <div class="paragraph">
-<p>但它仍然是非常简单的修改，即使它只是一个临时的。我们不得不断言表达式应该以行结束符而结束，例如，一个回车为了了解我正在讨论的，尝试输入一行：</p>
+<p>但它仍然是非常简单的修改，即使它只是一个临时的。我们不得不断言表达式应该以行结束符而结束，例如，一个回车符。为了了解我正在讨论的，尝试输入一行：</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -2005,7 +1999,7 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>看是如何把空格看成一个终结符的？现在，为了让编译器可以适当地标记，在主函数Main中，仅在Expression调用后加入一行：</p>
+<p>看一下语法分析器是如何把空格看成一个终结符的？现在，为了让编译器可以适当地标记，在主函数Main中，仅在Expression调用后加入一行：</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -2027,7 +2021,7 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
 <div class="sect2">
 <h3 id="_赋值语句">3.5. 赋值语句</h3>
 <div class="paragraph">
-<p>好，我们已经有一个可以工作得非常好的编译器了。我想指出的是，不包括cradle我们只用了88行可执行代码。但编译的对象文件异常大，占4752字节。但这并不坏，想想我们并不难保存这些源代码和对象文件。我们仅坚持KISS原则。</p>
+<p>好，我们已经有一个可以工作得非常好的编译器了。我想指出的是，不包括摇篮代码我们只用了88行可执行代码。但编译的对象文件异常大，占4752字节。但这并不坏，想想我们并不难保存这些源代码和对象文件。我们必须坚持KISS原则。</p>
 </div>
 <div class="paragraph">
 <p>当然，分析一个表达式之后如果不进行处理它，这并不是太好。表达式通常(但不是总是)出现在赋值语句中，如下形式</p>
@@ -2042,8 +2036,7 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="pascal"><span></span><span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Parse and Translate an Assignment Statement }</span>
+<pre class="pygments highlight"><code data-lang="pascal"><span></span><span class="tok-cm">{ 语法分析和翻译一个赋值语句 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">Assignment</span><span class="tok-o">;</span>
 <span class="tok-k">var</span> <span class="tok-n">Name</span><span class="tok-o">:</span> <span class="tok-kt">char</span><span class="tok-o">;</span>
@@ -2053,12 +2046,11 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
    <span class="tok-n">Expression</span><span class="tok-o">;</span>
    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&#39;LEA &#39;</span> <span class="tok-o">+</span> <span class="tok-n">Name</span> <span class="tok-o">+</span> <span class="tok-s">&#39;(PC),A0&#39;</span><span class="tok-p">)</span><span class="tok-o">;</span>
    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&#39;MOVE D0,(A0)&#39;</span><span class="tok-p">)</span>
-<span class="tok-k">end</span><span class="tok-o">;</span>
-<span class="tok-cm">{--------------------------------------------------------------}</span></code></pre>
+<span class="tok-k">end</span><span class="tok-o">;</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>再一次留意到，代码正好与BNF一致。进一步可留意到错误检测并不难，全交由GetName和Match完成。</p>
+<p>再一次留意到，代码正好与BNF语法一致。进一步可留意到错误检测并不难，全交由GetName和Match完成。</p>
 </div>
 <div class="paragraph">
 <p>出于要求构造PC相关的代码，两行汇编译代码不得不在68000中特殊处理。</p>
@@ -2067,45 +2059,42 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
 <p>现在只要在主函数main中把Expression调用改为Assignment调用。如此而已。</p>
 </div>
 <div class="paragraph">
-<p>讨厌的工作！实际上我们正在编译赋值语句。如果只用一个语言只用这一种类型的语句，那么我们就可以把它放入一个循环中而且我们也就有一个完全的编译器了。</p>
+<p>太爽了！实际上我们正在编译赋值语句。如果一个编程语言中只有这一种类型的语句，那么我们就可以把它放入一个循环中而且我们也就有一个完全的编译器了。</p>
 </div>
 <div class="paragraph">
-<p>当然，一个语言不可能只有一个类型的语句。还应有一些如控制语句(条件语句和循环语句)，过程，声明等等。但令人振奋的是，我们已经处理的算术表达式是一个语言中最有挑战性的。相对我们已经做的，控制语句将是十分容易的。我将会把它们补充在第15章节。而其它语句也将同步完成，只要我们记住KISS原则。</p>
+<p>当然，一个编程语言中不可能只有一种类型的语句。还有一些如控制语句(条件语句和循环语句)，函数，声明等等。但令人振奋的是，我们已经处理的算术表达式是一个语言中最有挑战性的。相对我们已经做的，控制语句将是十分容易的。我将会把它们补充在第15章节。而其它语句也将同步完成，只要我们记住KISS原则。</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_多字符记号">3.6. 多字符记号</h3>
+<h3 id="_多字符token">3.6. 多字符token</h3>
 <div class="paragraph">
-<p>贯穿整部书，我已经很小心限制我们所做一切都为单字符记号，并一直让你确信把其扩展成多字符记号是不太困难的。我不清楚你是否相信我&#8230;&#8203;如果你过去曾有一点怀疑，我真的不想责备你&#8230;&#8203;在接下来的章节里我会继续用这方法，因为它帮助我们避开了复杂性。但我乐意补充这些断言，通过展示你是多么容易地真正扩展它来总结语法分析器的这一部分内容。在这当中，我们也将为嵌入空白符作准备。在你接下来改动代码之前，虽然只有一小部分改动，请用另一个文件名来保存当前版本的语法分析程序。我们会在后面的部分多次使用它，且我们也将在单字符记号版本下开发。</p>
+<p>在这一系列的教程中，我已经很小心限制我们所做的一切都是单字符token，并一直让你确信把它扩展成多字符token是不太困难的。我不清楚你是否相信我&#8230;&#8203;如果你过去曾有一点怀疑，我真的不想责备你&#8230;&#8203;在接下来的章节里我会继续用这方法，因为它帮助我们避开了复杂性。但我乐意补充这些向你保证过的代码，这样你就知道扩展一个语法分析器是多么的容易了。在这当中，我们也将为代码中嵌入的空白符作准备。在你接下来改动代码之前，虽然只有一小部分改动，请用另一个文件名来保存当前版本的语法分析器。我们会在后面的部分多次使用它，且我们也将继续在单字符token版本的程序中做开发。</p>
 </div>
 <div class="paragraph">
-<p>许多编译器把处理输入流分成一个独立的模块称为词法分析程序。其主要思想是词法分析器处理一个接一个的字符输入，并返回一个在流中的分离单元(记号)。当我们想这样处理时，可以实现它，但我们现在并不需要。我们只需要对GetName和GetNum进行很小的局部修改就可以使其处理多字符记号。</p>
+<p>许多编译器把处理输入流分成一个独立的模块称为词法分析器。其主要思想是词法分析器处理一个接一个的字符输入，并返回一个在流中的分离单元(token)。当我们想这样处理时，可以实现它，但我们现在并不需要。我们只需要对GetName和GetNum进行很小的局部修改就可以使其处理多字符记号。</p>
 </div>
 <div class="paragraph">
 <p>一个标识符通常定义为开头字符是一个字母，而余下为字母数字式的串(字母或数字)。为了完成它，我们需要另一个识别函数：</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="pascal"><span></span><span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Recognize an Alphanumeric }</span>
+<pre class="pygments highlight"><code data-lang="pascal"><span></span><span class="tok-cm">{ 判断一个字符是数字还是字母 }</span>
 
 <span class="tok-k">function</span> <span class="tok-nf">IsAlNum</span><span class="tok-p">(</span><span class="tok-n">c</span><span class="tok-o">:</span> <span class="tok-kt">char</span><span class="tok-p">)</span><span class="tok-o">:</span> <span class="tok-kt">boolean</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
    <span class="tok-n">IsAlNum</span> <span class="tok-o">:=</span> <span class="tok-n">IsAlpha</span><span class="tok-p">(</span><span class="tok-n">c</span><span class="tok-p">)</span> <span class="tok-k">or</span> <span class="tok-n">IsDigit</span><span class="tok-p">(</span><span class="tok-n">c</span><span class="tok-p">)</span><span class="tok-o">;</span>
-<span class="tok-k">end</span><span class="tok-o">;</span>
-<span class="tok-cm">{--------------------------------------------------------------}</span></code></pre>
+<span class="tok-k">end</span><span class="tok-o">;</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>把上函数加入到你的语法分析程序中。我把它放在IsDigit之后。当你实现时，最好也把它作为Cradle永久的一员(译：就是作为模版的一部分)。</p>
+<p>把上面的函数加入到你的语法分析器中。我把它放在IsDigit之后。当你实现时，最好也把它作为摇篮代码中永久的一员(译：就是作为模版的一部分)。</p>
 </div>
 <div class="paragraph">
 <p>现在我们需要修改函数GetName的返回值一字符代替为一字符串：</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="pascal"><span></span><span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Get an Identifier }</span>
+<pre class="pygments highlight"><code data-lang="pascal"><span></span><span class="tok-cm">{ 获取标识符 }</span>
 
 <span class="tok-k">function</span> <span class="tok-nf">GetName</span><span class="tok-o">:</span> <span class="tok-k">string</span><span class="tok-o">;</span>
 <span class="tok-k">var</span> <span class="tok-n">Token</span><span class="tok-o">:</span> <span class="tok-k">string</span><span class="tok-o">;</span>
@@ -2117,8 +2106,7 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
       <span class="tok-n">GetChar</span><span class="tok-o">;</span>
    <span class="tok-k">end</span><span class="tok-o">;</span>
    <span class="tok-n">GetName</span> <span class="tok-o">:=</span> <span class="tok-n">Token</span><span class="tok-o">;</span>
-<span class="tok-k">end</span><span class="tok-o">;</span>
-<span class="tok-cm">{--------------------------------------------------------------}</span></code></pre>
+<span class="tok-k">end</span><span class="tok-o">;</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2126,8 +2114,7 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="pascal"><span></span><span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Get a Number }</span>
+<pre class="pygments highlight"><code data-lang="pascal"><span></span><span class="tok-cm">{ 获取数值 }</span>
 
 <span class="tok-k">function</span> <span class="tok-nf">GetNum</span><span class="tok-o">:</span> <span class="tok-k">string</span><span class="tok-o">;</span>
 <span class="tok-k">var</span> <span class="tok-n">Value</span><span class="tok-o">:</span> <span class="tok-k">string</span><span class="tok-o">;</span>
@@ -2139,54 +2126,49 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
       <span class="tok-n">GetChar</span><span class="tok-o">;</span>
    <span class="tok-k">end</span><span class="tok-o">;</span>
    <span class="tok-n">GetNum</span> <span class="tok-o">:=</span> <span class="tok-n">Value</span><span class="tok-o">;</span>
-<span class="tok-k">end</span><span class="tok-o">;</span>
-<span class="tok-cm">{--------------------------------------------------------------}</span></code></pre>
+<span class="tok-k">end</span><span class="tok-o">;</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>令人惊讶的是这就是语法分析程序实质上需要改动的全部地方。在过程Ident和Assignment的局部变量Name原来声明为字符类型，现在必须声明为string[8](显然，我们可以选择让字符串长度更长，但许多汇编程序在某种程度上都限制了长度。完成这些改动，并重编译和测试。现在你相信这是一个简单的改动了吧？</p>
+<p>令人惊讶的是这就是语法分析程序实质上需要改动的全部地方。在函数Ident和Assignment中的局部变量Name，原来声明为char类型，现在必须声明为string[8](显然，我们可以选择让字符串长度更长，但许多汇编程序在某种程度上都限制了长度。完成这些改动，并重编译和测试。现在你相信这是一个简单的改动了吧？</p>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_空白符">3.7. 空白符</h3>
 <div class="paragraph">
-<p>在我们暂时抛开这个语法分析器之前，让我们看看空白符问题。就现在的情况来看，语法分析器将崩溃(或是简单的终止)在一个嵌入在输入流中任意位置上的空白符。这是一个相当不友好的行为。所以让我们进一步开发以消除以上的限制。</p>
+<p>在我们暂时抛开这个语法分析器之前，让我们看看空白符问题。就现在的情况来看，当我们输入一个空白字符时，语法分析器将崩溃。这很不友好。所以让我们进一步开发以消除以上的限制。</p>
 </div>
 <div class="paragraph">
-<p>使处理空白符容易的关键就在于提出一个简单的规则来规定语法分析器应该如何对待输入流，并能使得这个规则在任何地方都可以执行。直到现在，因为空白符是不允许的，我们就可以假定在每个语法分析行为之后，先行字符Look都包含着下一个有意义的字符，所以我们可以立即对Look进行测试。我们的设计是基于这个原则的。</p>
+<p>使处理空白符容易的关键就在于提出一个简单的规则来规定语法分析器应该如何对待输入流，并能使得这个规则在任何地方都可以执行。直到现在，因为空白符是不允许的，我们就可以假定在每个语法分析行为之后，向前看字符Look都包含着下一个有意义的字符，所以我们可以立即对Look进行测试。我们的设计是基于这个原则的。</p>
 </div>
 <div class="paragraph">
 <p>对于我来说它仍为一个好的原则，所以它也是我们以后将延用的规则。这意味着所有先行预测输入流的例程必须跳过所有的空白符，并把下一个非空白符保存在Look中。幸运的是，我们已经小心地采用GetName，GetNum，和Match来处理大部分的输入。这里仅三个例程序(加上Init)需要我们修改。</p>
 </div>
 <div class="paragraph">
-<p>不会惊讶，我们仍以一个新识别例程开始修改：</p>
+<p>不用惊讶，我们仍以一个新识别例程开始修改：</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="pascal"><span></span><span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Recognize White Space }</span>
+<pre class="pygments highlight"><code data-lang="pascal"><span></span><span class="tok-cm">{ 判断是否为空白字符 }</span>
 
 <span class="tok-k">function</span> <span class="tok-nf">IsWhite</span><span class="tok-p">(</span><span class="tok-n">c</span><span class="tok-o">:</span> <span class="tok-kt">char</span><span class="tok-p">)</span><span class="tok-o">:</span> <span class="tok-kt">boolean</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
    <span class="tok-n">IsWhite</span> <span class="tok-o">:=</span> <span class="tok-n">c</span> <span class="tok-k">in</span> <span class="tok-p">[</span><span class="tok-s">&#39; &#39;</span><span class="tok-o">,</span> <span class="tok-n">TAB</span><span class="tok-p">]</span><span class="tok-o">;</span>
-<span class="tok-k">end</span><span class="tok-o">;</span>
-<span class="tok-cm">{--------------------------------------------------------------}</span></code></pre>
+<span class="tok-k">end</span><span class="tok-o">;</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>我们也需要一个例程去消耗空白字符，直到找到一个非空白字符：</p>
+<p>我们也需要一个函数去吃掉空白字符，直到找到一个非空白字符：</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="pascal"><span></span><span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Skip Over Leading White Space }</span>
+<pre class="pygments highlight"><code data-lang="pascal"><span></span><span class="tok-cm">{ 忽略空白字符 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">SkipWhite</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
    <span class="tok-k">while</span> <span class="tok-n">IsWhite</span><span class="tok-p">(</span><span class="tok-n">Look</span><span class="tok-p">)</span> <span class="tok-k">do</span>
       <span class="tok-n">GetChar</span><span class="tok-o">;</span>
-<span class="tok-k">end</span><span class="tok-o">;</span>
-<span class="tok-cm">{--------------------------------------------------------------}</span></code></pre>
+<span class="tok-k">end</span><span class="tok-o">;</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2194,8 +2176,7 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="pascal"><span></span><span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Match a Specific Input Character }</span>
+<pre class="pygments highlight"><code data-lang="pascal"><span></span><span class="tok-cm">{ 匹配一个特定的输入字符 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">Match</span><span class="tok-p">(</span><span class="tok-n">x</span><span class="tok-o">:</span> <span class="tok-kt">char</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
@@ -2206,9 +2187,7 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
    <span class="tok-k">end</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Get an Identifier }</span>
+<span class="tok-cm">{ 获取一个标识符 }</span>
 
 <span class="tok-k">function</span> <span class="tok-nf">GetName</span><span class="tok-o">:</span> <span class="tok-k">string</span><span class="tok-o">;</span>
 <span class="tok-k">var</span> <span class="tok-n">Token</span><span class="tok-o">:</span> <span class="tok-k">string</span><span class="tok-o">;</span>
@@ -2223,9 +2202,7 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
    <span class="tok-n">SkipWhite</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Get a Number }</span>
+<span class="tok-cm">{ 获取一个数值 }</span>
 
 <span class="tok-k">function</span> <span class="tok-nf">GetNum</span><span class="tok-o">:</span> <span class="tok-k">string</span><span class="tok-o">;</span>
 <span class="tok-k">var</span> <span class="tok-n">Value</span><span class="tok-o">:</span> <span class="tok-k">string</span><span class="tok-o">;</span>
@@ -2238,8 +2215,7 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
    <span class="tok-k">end</span><span class="tok-o">;</span>
    <span class="tok-n">GetNum</span> <span class="tok-o">:=</span> <span class="tok-n">Value</span><span class="tok-o">;</span>
    <span class="tok-n">SkipWhite</span><span class="tok-o">;</span>
-<span class="tok-k">end</span><span class="tok-o">;</span>
-<span class="tok-cm">{--------------------------------------------------------------}</span></code></pre>
+<span class="tok-k">end</span><span class="tok-o">;</span></code></pre>
 </div>
 </div>
 <div class="admonitionblock note">
@@ -2255,53 +2231,46 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
 </table>
 </div>
 <div class="paragraph">
-<p>最后，我们在Init需要跳过所有空白字符(译：“最初的泵”-泵去空白符)</p>
+<p>最后，我们在Init函数中需要跳过所有空白字符。</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="pascal"><span></span><span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Initialize }</span>
+<pre class="pygments highlight"><code data-lang="pascal"><span></span><span class="tok-cm">{ 初始化 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">Init</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
    <span class="tok-n">GetChar</span><span class="tok-o">;</span>
    <span class="tok-n">SkipWhite</span><span class="tok-o">;</span>
-<span class="tok-k">end</span><span class="tok-o">;</span>
-<span class="tok-cm">{--------------------------------------------------------------}</span></code></pre>
+<span class="tok-k">end</span><span class="tok-o">;</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>完成以上改动并重编译程序。你将发现为了避免Pascal编译器的出错信息，你将不得不把Match移到SkipWhite之后。和以往那样测试程序保证它正常工作。</p>
+<p>完成以上改动并重新编译程序。你将发现为了避免Pascal编译器的出错信息，你将不得不把Match移到SkipWhite之后。和以往那样测试程序保证它可以正常工作。</p>
 </div>
 <div class="paragraph">
 <p>因为在这小节中我们已经做了许多改动，我重现整个语法分析程序如下：</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code data-lang="pascal"><span></span><span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-k">program</span> <span class="tok-n">parse</span><span class="tok-o">;</span>
+<pre class="pygments highlight"><code data-lang="pascal"><span></span><span class="tok-k">program</span> <span class="tok-n">parse</span><span class="tok-o">;</span>
 
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Constant Declarations }</span>
+<span class="tok-cm">{ 声明常量 }</span>
 
 <span class="tok-k">const</span> <span class="tok-n">TAB</span> <span class="tok-o">=</span> <span class="tok-o">^</span><span class="tok-n">I</span><span class="tok-o">;</span>
        <span class="tok-n">CR</span> <span class="tok-o">=</span> <span class="tok-o">^</span><span class="tok-n">M</span><span class="tok-o">;</span>
 
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Variable Declarations }</span>
+<span class="tok-cm">{ 声明变量 }</span>
 
-<span class="tok-k">var</span> <span class="tok-n">Look</span><span class="tok-o">:</span> <span class="tok-kt">char</span><span class="tok-o">;</span>              <span class="tok-cm">{ Lookahead Character }</span>
+<span class="tok-k">var</span> <span class="tok-n">Look</span><span class="tok-o">:</span> <span class="tok-kt">char</span><span class="tok-o">;</span>              <span class="tok-cm">{ 向前看字符 }</span>
 
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Read New Character From Input Stream }</span>
+<span class="tok-cm">{ 从输入流中读取一个新的字符 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">GetChar</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
    <span class="tok-nb">Read</span><span class="tok-p">(</span><span class="tok-n">Look</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Report an Error }</span>
+<span class="tok-cm">{ 报告一个错误 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">Error</span><span class="tok-p">(</span><span class="tok-n">s</span><span class="tok-o">:</span> <span class="tok-k">string</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
@@ -2309,9 +2278,7 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
    <span class="tok-nb">WriteLn</span><span class="tok-p">(</span><span class="tok-o">^</span><span class="tok-n">G</span><span class="tok-o">,</span> <span class="tok-s">&#39;Error: &#39;</span><span class="tok-o">,</span> <span class="tok-n">s</span><span class="tok-o">,</span> <span class="tok-s">&#39;.&#39;</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Report Error and Halt }</span>
+<span class="tok-cm">{ 报告错误然后终止程序 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">Abort</span><span class="tok-p">(</span><span class="tok-n">s</span><span class="tok-o">:</span> <span class="tok-k">string</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
@@ -2319,63 +2286,49 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
    <span class="tok-nb">Halt</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Report What Was Expected }</span>
+<span class="tok-cm">{ 打印预期的信息 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">Expected</span><span class="tok-p">(</span><span class="tok-n">s</span><span class="tok-o">:</span> <span class="tok-k">string</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
    <span class="tok-nb">Abort</span><span class="tok-p">(</span><span class="tok-n">s</span> <span class="tok-o">+</span> <span class="tok-s">&#39; Expected&#39;</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Recognize an Alpha Character }</span>
+<span class="tok-cm">{ 识别一个字母 }</span>
 
 <span class="tok-k">function</span> <span class="tok-nf">IsAlpha</span><span class="tok-p">(</span><span class="tok-n">c</span><span class="tok-o">:</span> <span class="tok-kt">char</span><span class="tok-p">)</span><span class="tok-o">:</span> <span class="tok-kt">boolean</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
    <span class="tok-n">IsAlpha</span> <span class="tok-o">:=</span> <span class="tok-nb">UpCase</span><span class="tok-p">(</span><span class="tok-n">c</span><span class="tok-p">)</span> <span class="tok-k">in</span> <span class="tok-p">[</span><span class="tok-s">&#39;A&#39;</span><span class="tok-o">..</span><span class="tok-s">&#39;Z&#39;</span><span class="tok-p">]</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Recognize a Decimal Digit }</span>
+<span class="tok-cm">{ 识别一个十进制数字 }</span>
 
 <span class="tok-k">function</span> <span class="tok-nf">IsDigit</span><span class="tok-p">(</span><span class="tok-n">c</span><span class="tok-o">:</span> <span class="tok-kt">char</span><span class="tok-p">)</span><span class="tok-o">:</span> <span class="tok-kt">boolean</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
    <span class="tok-n">IsDigit</span> <span class="tok-o">:=</span> <span class="tok-n">c</span> <span class="tok-k">in</span> <span class="tok-p">[</span><span class="tok-s">&#39;0&#39;</span><span class="tok-o">..</span><span class="tok-s">&#39;9&#39;</span><span class="tok-p">]</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Recognize an Alphanumeric }</span>
+<span class="tok-cm">{ 识别一个数字或者字母的字符 }</span>
 
 <span class="tok-k">function</span> <span class="tok-nf">IsAlNum</span><span class="tok-p">(</span><span class="tok-n">c</span><span class="tok-o">:</span> <span class="tok-kt">char</span><span class="tok-p">)</span><span class="tok-o">:</span> <span class="tok-kt">boolean</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
    <span class="tok-n">IsAlNum</span> <span class="tok-o">:=</span> <span class="tok-n">IsAlpha</span><span class="tok-p">(</span><span class="tok-n">c</span><span class="tok-p">)</span> <span class="tok-k">or</span> <span class="tok-n">IsDigit</span><span class="tok-p">(</span><span class="tok-n">c</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Recognize an Addop }</span>
+<span class="tok-cm">{ 识别加减操作符 }</span>
 
 <span class="tok-k">function</span> <span class="tok-nf">IsAddop</span><span class="tok-p">(</span><span class="tok-n">c</span><span class="tok-o">:</span> <span class="tok-kt">char</span><span class="tok-p">)</span><span class="tok-o">:</span> <span class="tok-kt">boolean</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
    <span class="tok-n">IsAddop</span> <span class="tok-o">:=</span> <span class="tok-n">c</span> <span class="tok-k">in</span> <span class="tok-p">[</span><span class="tok-s">&#39;+&#39;</span><span class="tok-o">,</span> <span class="tok-s">&#39;-&#39;</span><span class="tok-p">]</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Recognize White Space }</span>
+<span class="tok-cm">{ 识别空白字符 }</span>
 
 <span class="tok-k">function</span> <span class="tok-nf">IsWhite</span><span class="tok-p">(</span><span class="tok-n">c</span><span class="tok-o">:</span> <span class="tok-kt">char</span><span class="tok-p">)</span><span class="tok-o">:</span> <span class="tok-kt">boolean</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
    <span class="tok-n">IsWhite</span> <span class="tok-o">:=</span> <span class="tok-n">c</span> <span class="tok-k">in</span> <span class="tok-p">[</span><span class="tok-s">&#39; &#39;</span><span class="tok-o">,</span> <span class="tok-n">TAB</span><span class="tok-p">]</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Skip Over Leading White Space }</span>
+<span class="tok-cm">{ 跳过空白字符 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">SkipWhite</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
@@ -2383,9 +2336,7 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
       <span class="tok-n">GetChar</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Match a Specific Input Character }</span>
+<span class="tok-cm">{ 匹配一个特定的输入字符 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">Match</span><span class="tok-p">(</span><span class="tok-n">x</span><span class="tok-o">:</span> <span class="tok-kt">char</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
@@ -2396,9 +2347,7 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
    <span class="tok-k">end</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Get an Identifier }</span>
+<span class="tok-cm">{ 获取一个标识符 }</span>
 
 <span class="tok-k">function</span> <span class="tok-nf">GetName</span><span class="tok-o">:</span> <span class="tok-k">string</span><span class="tok-o">;</span>
 <span class="tok-k">var</span> <span class="tok-n">Token</span><span class="tok-o">:</span> <span class="tok-k">string</span><span class="tok-o">;</span>
@@ -2413,9 +2362,7 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
    <span class="tok-n">SkipWhite</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Get a Number }</span>
+<span class="tok-cm">{ 获取一个数值 }</span>
 
 <span class="tok-k">function</span> <span class="tok-nf">GetNum</span><span class="tok-o">:</span> <span class="tok-k">string</span><span class="tok-o">;</span>
 <span class="tok-k">var</span> <span class="tok-n">Value</span><span class="tok-o">:</span> <span class="tok-k">string</span><span class="tok-o">;</span>
@@ -2430,18 +2377,14 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
    <span class="tok-n">SkipWhite</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Output a String with Tab }</span>
+<span class="tok-cm">{ 输出带制表符缩进的字符串 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">Emit</span><span class="tok-p">(</span><span class="tok-n">s</span><span class="tok-o">:</span> <span class="tok-k">string</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
    <span class="tok-nb">Write</span><span class="tok-p">(</span><span class="tok-n">TAB</span><span class="tok-o">,</span> <span class="tok-n">s</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Output a String with Tab and CRLF }</span>
+<span class="tok-cm">{ 输出带制表符缩进和换行符（CRLF）的字符串 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">EmitLn</span><span class="tok-p">(</span><span class="tok-n">s</span><span class="tok-o">:</span> <span class="tok-k">string</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
@@ -2449,9 +2392,7 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
    <span class="tok-nb">WriteLn</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{---------------------------------------------------------------}</span>
-<span class="tok-cm">{ Parse and Translate a Identifier }</span>
+<span class="tok-cm">{ 语法分析和翻译一个标识符 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">Ident</span><span class="tok-o">;</span>
 <span class="tok-k">var</span> <span class="tok-n">Name</span><span class="tok-o">:</span> <span class="tok-k">string</span><span class="tok-p">[</span><span class="tok-mi">8</span><span class="tok-p">]</span><span class="tok-o">;</span>
@@ -2466,9 +2407,7 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
       <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&#39;MOVE &#39;</span> <span class="tok-o">+</span> <span class="tok-n">Name</span> <span class="tok-o">+</span> <span class="tok-s">&#39;(PC),D0&#39;</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{---------------------------------------------------------------}</span>
-<span class="tok-cm">{ Parse and Translate a Math Factor }</span>
+<span class="tok-cm">{ 语法分析和翻译数学Factor }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">Expression</span><span class="tok-o">;</span> <span class="tok-kp">Forward</span><span class="tok-o">;</span>
 
@@ -2485,9 +2424,7 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
       <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&#39;MOVE #&#39;</span> <span class="tok-o">+</span> <span class="tok-n">GetNum</span> <span class="tok-o">+</span> <span class="tok-s">&#39;,D0&#39;</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Recognize and Translate a Multiply }</span>
+<span class="tok-cm">{ 识别和翻译乘法操作 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">Multiply</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
@@ -2496,9 +2433,7 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&#39;MULS (SP)+,D0&#39;</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{-------------------------------------------------------------}</span>
-<span class="tok-cm">{ Recognize and Translate a Divide }</span>
+<span class="tok-cm">{ 识别和翻译除法操作 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">Divide</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
@@ -2509,9 +2444,7 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&#39;DIVS D1,D0&#39;</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{---------------------------------------------------------------}</span>
-<span class="tok-cm">{ Parse and Translate a Math Term }</span>
+<span class="tok-cm">{ 语法分析和翻译数学Term }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">Term</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
@@ -2525,9 +2458,7 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
    <span class="tok-k">end</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Recognize and Translate an Add }</span>
+<span class="tok-cm">{ 识别和翻译加法运算 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">Add</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
@@ -2536,9 +2467,7 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&#39;ADD (SP)+,D0&#39;</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{-------------------------------------------------------------}</span>
-<span class="tok-cm">{ Recognize and Translate a Subtract }</span>
+<span class="tok-cm">{ 识别和翻译减法运算 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">Subtract</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
@@ -2548,9 +2477,7 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&#39;NEG D0&#39;</span><span class="tok-p">)</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{---------------------------------------------------------------}</span>
-<span class="tok-cm">{ Parse and Translate an Expression }</span>
+<span class="tok-cm">{ 语法分析和翻译一个表达式 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">Expression</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
@@ -2567,9 +2494,7 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
    <span class="tok-k">end</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Parse and Translate an Assignment Statement }</span>
+<span class="tok-cm">{ 语法分析和翻译一个赋值语句 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">Assignment</span><span class="tok-o">;</span>
 <span class="tok-k">var</span> <span class="tok-n">Name</span><span class="tok-o">:</span> <span class="tok-k">string</span><span class="tok-p">[</span><span class="tok-mi">8</span><span class="tok-p">]</span><span class="tok-o">;</span>
@@ -2581,9 +2506,7 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
    <span class="tok-n">EmitLn</span><span class="tok-p">(</span><span class="tok-s">&#39;MOVE D0,(A0)&#39;</span><span class="tok-p">)</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Initialize }</span>
+<span class="tok-cm">{ 初始化代码 }</span>
 
 <span class="tok-k">procedure</span> <span class="tok-nf">Init</span><span class="tok-o">;</span>
 <span class="tok-k">begin</span>
@@ -2591,20 +2514,17 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
    <span class="tok-n">SkipWhite</span><span class="tok-o">;</span>
 <span class="tok-k">end</span><span class="tok-o">;</span>
 
-
-<span class="tok-cm">{--------------------------------------------------------------}</span>
-<span class="tok-cm">{ Main Program }</span>
+<span class="tok-cm">{ 主程序 }</span>
 
 <span class="tok-k">begin</span>
    <span class="tok-n">Init</span><span class="tok-o">;</span>
    <span class="tok-n">Assignment</span><span class="tok-o">;</span>
    <span class="tok-k">If</span> <span class="tok-n">Look</span> <span class="tok-o">&lt;&gt;</span> <span class="tok-n">CR</span> <span class="tok-k">then</span> <span class="tok-n">Expected</span><span class="tok-p">(</span><span class="tok-s">&#39;NewLine&#39;</span><span class="tok-p">)</span><span class="tok-o">;</span>
-<span class="tok-k">end</span><span class="tok-o">.</span>
-<span class="tok-cm">{--------------------------------------------------------------}</span></code></pre>
+<span class="tok-k">end</span><span class="tok-o">.</span></code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>现在语法分析程序已经完成。它已具有我们可以放入一个直线型“编译器”的所有特征。把它收藏在一个安全的地方。下一次，我们将开始一个新的主题，但一会儿我们也仍将讨论表达式。下一部分，我打算讲述与编译程序不同的解释程序，并向你展示当我们改动形为的种类时语法分析器的结构变动。即使你对解释程序不感兴趣，但获取这些信息为我们以后服务是很有好处的。下次再见。</p>
+<p>现在语法分析程序已经完成。它已具有我们可以放入一个直线型“编译器”的所有特征。把它收藏在一个安全的地方。下一次，我们将开始一个新的主题，但一会儿我们也仍将讨论表达式。下一部分，我打算讲述与编译器不同的解释器，并向你展示当我们改动行为的种类时语法分析器的结构变动。即使你对解释器不感兴趣，但获取这些信息为我们以后服务是很有好处的。下次再见。</p>
 </div>
 </div>
 <div class="sect2">
@@ -2654,7 +2574,6 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
 <span class="tok-cp">#include</span> <span class="tok-cpf">&quot;cradle.h&quot;</span><span class="tok-cp"></span>
 
 <span class="tok-cp">#define UPCASE(c) (~(1&lt;&lt;5) &amp; (c))</span>
-
 
 <span class="tok-kt">void</span> <span class="tok-nf">GetChar</span><span class="tok-p">()</span> <span class="tok-p">{</span>
   <span class="tok-n">Look</span> <span class="tok-o">=</span> <span class="tok-n">getchar</span><span class="tok-p">();</span>
@@ -2929,7 +2848,7 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-07-12 18:12:51 +0800
+Last updated 2021-07-12 19:18:43 +0800
 </div>
 </div>
 </body>
