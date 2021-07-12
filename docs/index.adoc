@@ -13,4 +13,5 @@
 * 现代编译原理（ML版）
 * 使用延续编译(Compiling With Continuations)
 * link:LBaC.html[构建一个编译器（Let's Build A Compiler）]
+* link:lsbasi.html[构建一个解释器]
 * 实现Scheme编译器
