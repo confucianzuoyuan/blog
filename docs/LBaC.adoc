@@ -1818,3 +1818,319 @@ end.
 ----
 
 现在语法分析程序已经完成。它已具有我们可以放入一个直线型“编译器”的所有特征。把它收藏在一个安全的地方。下一次，我们将开始一个新的主题，但一会儿我们也仍将讨论表达式。下一部分，我打算讲述与编译程序不同的解释程序，并向你展示当我们改动形为的种类时语法分析器的结构变动。即使你对解释程序不感兴趣，但获取这些信息为我们以后服务是很有好处的。下次再见。
+
+=== C & X86 版本代码
+
+.cradle.h
+[source,c]
+----
+#ifndef _CRADLE_H
+#define _CRADLE_H
+
+#define MAX_BUF 100
+char tmp[MAX_BUF];
+
+char Look;
+
+void GetChar();
+
+void Error(char *s);
+void Abort(char *s);
+void Expected(char *s);
+void Match(char x);
+
+int IsAlpha(char c);
+int IsDigit(char c);
+int IsAddop(char c);
+int IsAlNum(char c);
+int IsWhite(char c);
+
+char *GetName();
+char *GetNum();
+
+void SkipWhite();
+
+void Emit(char *s);
+void EmitLn(char *s);
+
+void Init();
+
+#endif
+----
+
+.cradle.c
+[source,c]
+----
+#include "stdio.h"
+#include "stdlib.h"
+#include "cradle.h"
+
+#define UPCASE(c) (~(1<<5) & (c))
+
+
+void GetChar() {
+  Look = getchar();
+}
+
+void Error(char* s) {
+  printf("\n");
+  printf("Error: %s\n", s);
+}
+
+void Abort(char* s) {
+  Error(s);
+  exit(1);
+}
+
+void Expected(char* s) {
+  sprintf(tmp, "%s Expected", s);
+  Abort(tmp);
+}
+
+void Match(char x) {
+  if(Look != x) {
+    sprintf(tmp, "' %c '", x);
+    Expected(tmp);
+  }
+  else {
+    GetChar();
+    SkipWhite();
+  }
+}
+
+int IsAlpha(char x) {
+  return (UPCASE(x) >= 'A' && UPCASE(x) <= 'Z');
+}
+
+int IsDigit(char x) {
+  return x >= '0' && x <= '9';
+}
+
+char* GetName() {
+  if(!IsAlpha(Look)) {
+      Expected("Name");
+  }
+  char* Token = malloc(100 * sizeof *Token);
+  Token[0] = '\0';
+  int i = 0;
+  while(IsAlNum(Look)) {
+    Token[i] = UPCASE(Look);
+    GetChar();
+    i++;
+  }
+  Token[i] = '\0';
+  SkipWhite();
+  return Token;
+}
+
+char* GetNum() {
+  if(!IsDigit(Look)) {
+    Expected("Integer");
+  }
+  char* Value = malloc(100 * sizeof *Value);
+  int i = 0;
+  while(IsDigit(Look)) {
+    Value[i] = Look;
+    GetChar();
+    i++;
+  }
+  Value[i] = '\0';
+  SkipWhite();
+  return Value;
+}
+
+void Emit(char* s) {
+  printf("\t%s", s);
+}
+
+void EmitLn(char* s) {
+  Emit(s);
+  printf("\n");
+}
+
+void Init() {
+  GetChar();
+  SkipWhite();
+}
+
+int IsAddop(char c) {
+  return c == '+' || c == '-';
+}
+
+int IsAlNum(char c) {
+  return IsAlpha(c) || IsDigit(c);
+}
+
+int IsWhite(char c) {
+  return c == ' ' || c == '\t';
+}
+
+void SkipWhite() {
+  while(IsWhite(Look)) {
+    GetChar();
+  }
+}
+----
+
+.main.c
+[source,c]
+----
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "cradle.h"
+
+void Term();
+void Expression();
+void Add();
+void Substract();
+void Factor();
+void Ident();
+void Assignment();
+
+void Multiply() {
+    Match('*');
+    Factor();
+    EmitLn("imul (%rsp), %rax");
+    /* push of the stack */
+    EmitLn("add $8, %rsp");
+} 
+
+void Divide() {
+    Match('/');
+    Factor();
+
+    /* for a expersion like a/b we have rax=b and %(rsp)=a
+     * but we need rax=a, and b on the stack 
+     */
+    EmitLn("mov (%rsp), %rdx");
+    EmitLn("add $8, %rsp");
+
+    EmitLn("push %rax");
+
+    EmitLn("mov %rdx, %rax");
+
+    /* sign extesnion */
+    EmitLn("sar $31, %rdx");
+    EmitLn("idivq (%rsp)");
+    EmitLn("add $8, %rsp");
+
+}
+
+void Ident() {
+    char *name = GetName();
+    if (Look == '(') {
+        Match('(');
+        Match(')');
+        sprintf(tmp, "call %s", name);
+        EmitLn(tmp);
+    } else {
+        sprintf(tmp, "mov %s, %%rax", name);
+        EmitLn(tmp);
+    }
+}
+
+void Factor() {
+    if(Look == '(') {
+        Match('(');
+        Expression();
+        Match(')');
+     } else if(IsAddop(Look)) {
+        Match('-');
+        sprintf(tmp,"mov $%s, %%rax", GetNum());
+        EmitLn(tmp);
+        EmitLn("neg %rax");
+    } else if (IsAlpha(Look)) {
+        Ident();
+    } else {
+        sprintf(tmp,"mov $%s, %%rax", GetNum());
+        EmitLn(tmp);
+    }
+}
+
+void Term() {
+    Factor();
+    while (strchr("*/", Look)) {
+
+        EmitLn("push %rax");
+
+        switch(Look)
+        {
+            case '*':
+                Multiply();
+                break;
+            case '/':
+                Divide();
+                break;
+            default:
+                Expected("Mulop");
+        }
+    }
+}
+
+void Expression() {
+    if(IsAddop(Look))
+        EmitLn("xor %rax, %rax");
+    else
+        Term();
+
+    while (strchr("+-", Look)) {
+
+        EmitLn("push %rax");
+
+        switch(Look)
+        {
+            case '+':
+                Add();
+                break;
+            case '-':
+                Substract();
+                break;
+            default:
+                Expected("Addop");
+        }
+    }
+}
+
+
+void Add() {
+    Match('+');
+    Term();
+    EmitLn("add (%rsp), %rax");
+    EmitLn("add $8, %rsp");
+    
+}
+
+
+void Substract() {
+    Match('-');
+    Term();
+    EmitLn("sub (%rsp), %rax");
+    EmitLn("neg %rax");
+    EmitLn("add $8, %rsp");
+}
+
+void Assignment() {
+    char *name = GetName();
+    Match('=');
+    Expression();
+    sprintf(tmp, "leaq %s, %%rbx", name);
+    EmitLn(tmp);
+    EmitLn("mov %rax, (%rbx)");
+}
+
+int main() {
+    Init();
+    EmitLn(".global main");
+    EmitLn("main:");
+    Expression();
+    // Assignment();
+    if (Look != '\n') {
+        Expected("NewLine");
+    }
+
+    EmitLn("ret");
+    return 0;
+}
+----
