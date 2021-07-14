@@ -2,17 +2,8 @@
 :nofooter:
 
 * link:flink-tutorial.html[Flink教程]
-* link:build-lisp.html[使用C语言实现Lisp解释器]
 * https://github.com/confucianzuoyuan/acwj[从零写一个可以自举的C语言编译器]
-* link:CraftingInterpreters.html[自制解释器]
-* link:fpinocaml.html[OCaml函数式编程]
-* link:WriteSchemeInHaskellV1.html[48小时用Haskell写一个Scheme解释器]
-* 使用OCaml实现一个C语言子集的编译器
-* 现代编译原理（ML版）
-* 编程语言的本质（EOPL）
-* 类型和程序设计语言（TAPL）
-* Lisp In Small Pieces
+* https://confucianzuoyuan.github.io/craftinginterpreters/[自制解释器]
 * 龙书中文版答案
 * link:LBaC.html[构建一个编译器]
 * link:lsbasi.html[构建一个解释器]
-* 实现Scheme编译器
