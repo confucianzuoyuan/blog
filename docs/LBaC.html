@@ -3001,13 +3001,44 @@ $ <span class="tok-nb">echo</span> <span class="tok-nv">$?</span></code></pre>
 <span class="tok-k">end</span><span class="tok-o">;</span></code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>表达式的结构和我们之前写的编译器是平行的，所以我们不需要花很多时间来做调试。我们已经有了很大的进展了，不是吗？Add和Subtract方法都被去掉了。因为在我们上面的程序中，已经处理了加减法。我们其实可以把这两个方法保留下来，然后将表达式所需要的参数传进去，然后求值，求得的值就是Value。但是对我来说，将Value作为一个局部变量，实现起来更加的清晰。我们把Add和Subtract方法中的代码放进Expression中了。这个结果表明了，当我们将我们简单的翻译方案实现为以上清晰而优美的代码时，我们可能就不需要和惰性求值打交道了。这点我们可能需要为了后面的内容而记在心里。</p>
+</div>
+<div class="paragraph">
+<p>好，翻译器能工作吗？让我们进行下一步。我们的Term程序修改起来也不会太难。在Expression中，将每个对GetNum的调用都改为对Term的调用，Term代码如下：</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="pascal"><span></span><span class="tok-k">function</span> <span class="tok-nf">Term</span><span class="tok-o">:</span> <span class="tok-kt">integer</span><span class="tok-o">;</span>
+<span class="tok-k">var</span> <span class="tok-n">Value</span><span class="tok-o">:</span> <span class="tok-kt">integer</span><span class="tok-o">;</span>
+<span class="tok-k">begin</span>
+    <span class="tok-n">Value</span> <span class="tok-o">:=</span> <span class="tok-n">GetNum</span><span class="tok-o">;</span>
+    <span class="tok-k">while</span> <span class="tok-n">Look</span> <span class="tok-k">in</span> <span class="tok-p">[</span><span class="tok-s">&#39;*&#39;</span><span class="tok-o">,</span> <span class="tok-s">&#39;/&#39;</span><span class="tok-p">]</span> <span class="tok-k">do</span> <span class="tok-k">begin</span>
+        <span class="tok-k">case</span> <span class="tok-n">Look</span> <span class="tok-k">of</span>
+            <span class="tok-s">&#39;*&#39;</span><span class="tok-o">:</span> <span class="tok-k">begin</span>
+                     <span class="tok-n">Match</span><span class="tok-p">(</span><span class="tok-s">&#39;*&#39;</span><span class="tok-p">)</span><span class="tok-o">;</span>
+                     <span class="tok-n">Value</span> <span class="tok-o">:=</span> <span class="tok-n">Value</span> <span class="tok-o">*</span> <span class="tok-n">GetNum</span><span class="tok-o">;</span>
+                 <span class="tok-k">end</span><span class="tok-o">;</span>
+            <span class="tok-s">&#39;/&#39;</span><span class="tok-o">:</span> <span class="tok-k">begin</span>
+                     <span class="tok-n">Match</span><span class="tok-p">(</span><span class="tok-s">&#39;/&#39;</span><span class="tok-p">)</span><span class="tok-o">;</span>
+                     <span class="tok-n">Value</span> <span class="tok-o">:=</span> <span class="tok-n">Value</span> <span class="tok-k">div</span> <span class="tok-n">GetNum</span><span class="tok-o">;</span>
+                 <span class="tok-k">end</span><span class="tok-o">;</span>
+        <span class="tok-k">end</span><span class="tok-o">;</span>
+    <span class="tok-k">end</span><span class="tok-o">;</span>
+    <span class="tok-n">Term</span> <span class="tok-o">:=</span> <span class="tok-n">Value</span><span class="tok-o">;</span>
+<span class="tok-k">end</span><span class="tok-o">;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>现在再试一下。不要忘记两件事情：首先，我们处理的是整数的除法，例如，1/3应该求值为0。第二，即使我们输出的是多数字的结果，我们的输入也应该限制在单个数字。</p>
+</div>
 </div>
 </div>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2021-07-14 15:46:41 +0800
+Last updated 2021-07-14 18:15:25 +0800
 </div>
 </div>
 </body>
