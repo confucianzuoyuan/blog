@@ -7,6 +7,8 @@
 
 == 简介
 
+=== 一些话
+
 这个系列的文章是一个开发语言的语法分析器和编译器的教程。在我们完成编译器之前，我们将会覆盖构建编译器的每一方面的知识：设计一门新的编程语言，然后构建一个可以工作的编译器。
 
 尽管我不是一个科班出身的计算机科学家（我的博士学位是物理学方面的），我对编译器却已经感兴趣很多年了。我购买了编译器方面的所有书籍并尝试着消化所有的内容。我不介意告诉你这个消化的过程非常的缓慢。编译器方面的书都是写给计算机专业的学生的，而对于我们这些业余爱好者则读起来非常的困难。但经过了很多年的消化，我终于开始学到一点东西了。改变发生于我开始自己鼓捣自己的编译器。现在我决定和你们分享一下我所学到的东西。当这个教程的系列结束时，你当然不可能成为一个计算机科学家，你也不可能学到所有有关编译器的知识。因为我想做的就是忽略掉所有编译器的理论。而你所能学到的就是构建一个可以工作的编译器所需要的方方面面的有关实践的知识。
@@ -163,143 +165,6 @@ end.
 
 NOTE: 如果在Ubuntu下想要进行Pascal编程，可以 `sudo apt-get install fpc` 。
 
-=== C & X86 版本代码
-
-.cradle.h
-[source,c]
-----
-#ifndef _CRADLE_H
-#define _CRADLE_H
-
-#define UPCASE(C) (~(1<<5) & (C))
-#define MAX_BUF 100
-
-static char tmp[MAX_BUF];
-
-char Look;
-
-void GetChar();
-
-void Error(char *s);
-void Abort(char *s);
-void Expected(char *s);
-void Match(char x);
-
-int IsAlpha(char c);
-int IsDigit(char c);
-
-char GetName();
-char GetNum();
-
-void Emit(char *s);
-void EmitLn(char *s);
-
-void Init();
-
-#endif
-----
-
-.cradle.c
-[source,c]
-----
-#include "cradle.h"
-#include <stdio.h>
-#include <stdlib.h>
-
-
-void GetChar() 
-{
-    Look = getchar();
-}
-
-
-void Error(char *s)
-{
-    printf("\nError: %s.", s);
-}
-
-void Abort(char *s)
-{
-    Error(s);
-    exit(1);
-}
-
-
-void Expected(char *s)
-{
-    sprintf(tmp, "%s Expected", s);
-    Abort(tmp);
-}
-
-
-void Match(char x)
-{
-    if(Look == x) {
-        GetChar();
-    } else {
-        sprintf(tmp, "' %c ' ",  x);
-        Expected(tmp);
-    }
-}
-
-
-int IsAlpha(char c)
-{
-    return (UPCASE(c) >= 'A') && (UPCASE(c) <= 'Z');
-} 
-
-int IsDigit(char c)
-{
-    return (c >= '0') && (c <= '9');
-}
-
-
-char GetName()
-{
-    char c = Look;
-
-    if( !IsAlpha(Look)) {
-        sprintf(tmp, "Name");
-        Expected(tmp);
-    }
-
-    GetChar();
-
-    return UPCASE(c);
-}
-
-
-char GetNum()
-{
-    char c = Look;
-
-    if( !IsDigit(Look)) {
-        sprintf(tmp, "Integer");
-        Expected(tmp);
-    }
-
-    GetChar();
-
-    return c;
-}
-
-void Emit(char *s)
-{
-    printf("\t%s", s);
-}
-
-void EmitLn(char *s)
-{
-    Emit(s);
-    printf("\n");
-}
-
-void Init()
-{
-    GetChar();
-}
-----
-
 == 对表达式进行语法分析
 
 === 让我们开始吧！
@@ -310,7 +175,7 @@ void Init()
 
 [source,text]
 ----
-               x = 2*y + 3/(4*z)
+x = 2*y + 3/(4*z)
 ----
 
 在早期阶段，我的步子会迈的非常非常小。这样初学者不会迷失。有一些很好的课程需要我们在很早的时候就学会，这样我们后面会很容易学习其他的知识。对于有经验的读者，需要忍受一下我讲的一些非常基础的知识。我们很快就会进入到核心区域的知识。
@@ -323,26 +188,22 @@ void Init()
 
 [source,pascal]
 ----
-{---------------------------------------------------------------}
-{ Parse and Translate a Math Expression }
+{ 对数学表达式进行语法分析和翻译 }
 
 procedure Expression;
 begin
    EmitLn('MOVE #' + GetNum + ',D0')
 end;
-{---------------------------------------------------------------}
 ----
 
 然后将 `Expression;` 这一行添加到主程序当中去，现在主程序如下：
                               
 [source,pascal]
 ----
-{---------------------------------------------------------------}
 begin
    Init;
    Expression;
 end.
-{---------------------------------------------------------------}
 ----
 
 现在运行程序。尝试一下将任意单个数字作为输入。你将会得到一行汇编代码的输出。然后再尝试一下输入任意其他的单个字符，你将会发现我们的语法分析器将会打印一个错误信息。
@@ -361,21 +222,20 @@ end.
 
 [source,text]
 ----
-                         1+2
-     或者                4-3
-     或者, 更一般的形式, <term> +/- <term>
+                           1+2
+或者                       4-3
+或者, 更一般的形式, <term> +/- <term>
 ----
 
 NOTE: 其实上面的最后一行就是巴科斯-诺尔范式，或者简称BNF。
-                              
+
 我们需要写一个程序来识别上面所写的 `term` 然后将计算结果存放在某个地方，然后还得写一个程序来识别 `+` 和 `-` ，然后输出我们想要的汇编代码。但是如果表达式将计算结果保存在 `D0` 寄存器，那我们将 `Term` 的计算结果保存在哪里？答案就是：同样的地方 `D0` 。在我们得到 `Term` 的下一个计算结果之前，我们将会把 `Term` 的第一个计算结果存放在某个地方。
 
 好吧，我们想做的事情基本就是写一个 `Term` 程序，它要做的事情就是我们之前写的 `Expression` 程序要做的事情。所以将 `Expression` 程序 **重命名** 成 `Term` 就行了。然后编写新版本的 `Expression` 程序如下：
 
 [source,pascal]
 ----
-{---------------------------------------------------------------}
-{ Parse and Translate an Expression }
+{ 对表达式进行语法分析和翻译 }
 
 procedure Expression;
 begin
@@ -387,15 +247,13 @@ begin
    else Expected('Addop');
    end;
 end;
-{--------------------------------------------------------------}
 ----
 
 紧接着，在 `Expression` 程序上面写如下两个程序：
 
 [source,pascal]
 ----
-{--------------------------------------------------------------}
-{ Recognize and Translate an Add }
+{ 识别和翻译加法 }
 
 procedure Add;
 begin
@@ -404,9 +262,7 @@ begin
    EmitLn('ADD D1,D0');
 end;
 
-
-{-------------------------------------------------------------}
-{ Recognize and Translate a Subtract }
+{ 识别和翻译减法 }
 
 procedure Subtract;
 begin
@@ -414,11 +270,7 @@ begin
    Term;
    EmitLn('SUB D1,D0');
 end;
-{-------------------------------------------------------------}
-----                              
-
-When you're finished with that,  the order of the routines should
-be:
+----
 
 当你完成了以上工作，现在各个程序的顺序应该如下：
 
@@ -433,8 +285,8 @@ be:
 
 [source,text]
 ----
-        MOVE #n,D0
-        MOVE D0,D1
+MOVE #n,D0
+MOVE D0,D1
 ----
 
 很低效。如果我们手写汇编代码，我们肯定会直接将数据 `#n` 加载到 `D1` 寄存器中啊。
@@ -445,8 +297,7 @@ be:
 
 [source,pascal]
 ----
-{-------------------------------------------------------------}
-{ Recognize and Translate a Subtract }
+{ 识别和翻译减法 }
 
 procedure Subtract;
 begin
@@ -455,7 +306,6 @@ begin
    EmitLn('SUB D1,D0');
    EmitLn('NEG D0');
 end;
-{-------------------------------------------------------------}
 ----
 
 现在我们的代码更加低效了，但最起码能够输出正确的结果了！不幸的是，程序中表示表达式中的 `term` 的顺序看起来很别扭。这就是我们生活的真相啊。当我们实现除法时，又会碰到同样的问题。
@@ -470,15 +320,14 @@ end;
 
 [source,text]
 ----
-          <expression> ::= <term> [<addop> <term>]*
+<expression> ::= <term> [<addop> <term>]*
 ----
 
 我们可以在 `Expression` 方法中添加一个简单的循环，来适配上面的定义：
 
 [source,pascal]
 ----
-{---------------------------------------------------------------}
-{ Parse and Translate an Expression }
+{ 对表达式进行语法分析和翻译 }
 
 procedure Expression;
 begin
@@ -492,7 +341,6 @@ begin
       end;
    end;
 end;
-{--------------------------------------------------------------}
 ----
 
 现在我们又前进了一步。这个版本的程序可以处理任意数量的 `term` ，而只耗费了我们两行额外的代码。当我们继续前进时，我们会发现这就是自顶向下语法分析器的特点...只需要添加几行代码就可以适配编程语言的扩展。注意， `Expression` 方法和BNF定义是多么的匹配啊！这同样是自顶向下语法分析器的一个特点。当你熟练掌握了这种方法，你会发现将BNF定义转换成语法分析器的代码是非常容易的！
@@ -505,17 +353,16 @@ end;
 
 [source,text]
 ----
-               1+(2-(3+(4-5)))
+1+(2-(3+(4-5)))
 ----
 
-如果我们将 `'1'` 放入 `D1` 寄存器中，那我们把 `'2'` 放在哪里？因为一个一般的表达式可能有任意复杂度。所以我们将会很快用完所有寄存器！
+如果我们将 `1` 放入 `D1` 寄存器中，那我们把 `2` 放在哪里？因为一个一般的表达式可能有任意复杂度。所以我们将会很快用完所有寄存器！
 
 幸运的是，有一个简单的解决方法。就像所有现代的微处理器一样，68000处理器也有一个栈。栈是一个用来存储一堆东西的完美的地方。所以无需将 `term` 从 `D0` 移动到 `D1` 这么麻烦，我们直接将 `term` 压入栈就可以了。对于不熟悉68000处理器的读者，我们说一下如何压栈，如下汇编就可以：
 
 [source,text]
 ----
 压栈操作，     -(SP)
-
 弹栈操作，     (SP)+ .
 ----
 
@@ -523,21 +370,21 @@ end;
 
 [source,pascal]
 ----
-               EmitLn('MOVE D0,-(SP)');
+EmitLn('MOVE D0,-(SP)');
 ----
 
 然后更改两个数的加减操作的代码 `Add` 和 `Subtract`：
 
 [source,pascal]
 ----
-               EmitLn('ADD (SP)+,D0')
+EmitLn('ADD (SP)+,D0')
 ----
 
 以及
 
 [source,pascal]
 ----
-               EmitLn('SUB (SP)+,D0'),
+EmitLn('SUB (SP)+,D0'),
 ----
 
 现在重新编译尝试一下语法分析器，会发现并没有搞崩代码。
@@ -550,7 +397,7 @@ end;
 
 [source,text]
 ----
-                    2 + 3 * 4,
+2 + 3 * 4,
 ----
 
 我们都知道应该先做乘法运算，然后再做加法运算。（知道我们为什么需要栈了吗？）
@@ -561,7 +408,7 @@ end;
 
 [source,text]
 ----
-          <term> ::= <factor>  [ <mulop> <factor> ]*
+<term> ::= <factor>  [ <mulop> <factor> ]*
 ----
 
 什么是 `factor` ？现在，它就是一个单字符数字的 `term` 。
@@ -570,17 +417,14 @@ end;
 
 [source,pascal]
 ----
-{---------------------------------------------------------------}
-{ Parse and Translate a Math Factor }
+{ 对数学因子（Factor）进行语法分析和翻译 }
 
 procedure Factor;
 begin
    EmitLn('MOVE #' + GetNum + ',D0')
 end;
 
-
-{--------------------------------------------------------------}
-{ Recognize and Translate a Multiply }
+{ 识别和翻译乘法 }
 
 procedure Multiply;
 begin
@@ -589,9 +433,7 @@ begin
    EmitLn('MULS (SP)+,D0');
 end;
 
-
-{-------------------------------------------------------------}
-{ Recognize and Translate a Divide }
+{ 识别和翻译除法 }
 
 procedure Divide;
 begin
@@ -601,9 +443,7 @@ begin
    EmitLn('DIVS D1,D0');
 end;
 
-
-{---------------------------------------------------------------}
-{ Parse and Translate a Math Term }
+{ 对数学Term进行语法分析和翻译 }
 
 procedure Term;
 begin
@@ -618,11 +458,7 @@ begin
    end;
 end;
 
-
-
-
-{--------------------------------------------------------------}
-{ Recognize and Translate an Add }
+{ 识别和翻译加法 }
 
 procedure Add;
 begin
@@ -631,9 +467,7 @@ begin
    EmitLn('ADD (SP)+,D0');
 end;
 
-
-{-------------------------------------------------------------}
-{ Recognize and Translate a Subtract }
+{ 识别和翻译减法 }
 
 procedure Subtract;
 begin
@@ -643,9 +477,7 @@ begin
    EmitLn('NEG D0');
 end;
 
-
-{---------------------------------------------------------------}
-{ Parse and Translate an Expression }
+{ 对表达式进行语法分析和翻译 }
 
 procedure Expression;
 begin
@@ -659,7 +491,6 @@ begin
       end;
    end;
 end;
-{--------------------------------------------------------------}
 ----
 
 来抽一根！一个非常整洁的语法分析器或者说翻译器已经完成了，只用了55行Pascal代码！输出已经开始看起来有那么一点儿用了。当然你得忽略掉生成的汇编代码很低效。记住，我们从来不打算生成紧凑高效的代码！
@@ -670,21 +501,21 @@ end;
 
 [source,text]
 ----
-               2*(3+4) ,
+2*(3+4)
 ----
 
 括号强制使加法运算发生在乘法运算之前。更为重要的是，括号让我们可以定义任意复杂度的表达式，例如下面：
 
 [source,text]
 ----
-               (1+2)/((3+4)+(5-6))
+(1+2)/((3+4)+(5-6))
 ----
 
 将括号处理机制引入我们的语法分析器的关键在于：要意识到无论被括号括住的表达式多么的复杂，对于这个世界来说，它看起来就像是一个简单的 `factor` 。也就是说， `factor` 的一种形式如下：
 
 [source,text]
 ----
-          <factor> ::= (<expression>)
+<factor> ::= (<expression>)
 ----
 
 递归来了！一个表达式可以包含一个 `factor` ，而这个 `factor` 可以包含其他的表达式，而这个表达式又可能包含了一个 `factor` ，可以无限搞下去。
@@ -693,8 +524,7 @@ end;
 
 [source,pascal]
 ----
-{---------------------------------------------------------------}
-{ Parse and Translate a Math Factor }
+{ 对数学因子（Factor）进行语法分析和翻译 }
 
 procedure Expression; Forward;
 
@@ -708,7 +538,6 @@ begin
    else
       EmitLn('MOVE #' + GetNum + ',D0');
 end;
-{--------------------------------------------------------------}
 ----
 
 再次注意一下，我们扩展语法分析器是多么的容易啊。我们的Pascal代码和BNF语法也特别的适配。
@@ -721,22 +550,21 @@ end;
 
 [source,text]
 ----
-                         -1
+-1
 ----
 
 又废了！不能工作了，是吧？ `Expression` 方法期望的输入是以整数开始的输入，而我们的输入是以负号开始的。所以你会发现 `+3` 同样不会工作，下面的表达式也不会工作：
 
 [source,text]
 ----
-                    -(3-2) .
+-(3-2)
 ----
 
 其实有很多方法可以搞定这个问题。最简单的方法（当然不一定是最好的方法）是将一个 `0` 添加到这种类型的表达式的最前面。所以 `-3` 变成了 `0-3` 。我们可以轻松的将这个补丁打到现在的 `Expression` 方法的代码里面：
 
 [source,pascal]
 ----
-{---------------------------------------------------------------}
-{ Parse and Translate an Expression }
+{ 对表达式进行语法分析和翻译 }
 
 procedure Expression;
 begin
@@ -753,21 +581,18 @@ begin
       end;
    end;
 end;
-{--------------------------------------------------------------}
 ---- 
 
 我和你说过修改代码很简单吧！只需要我们添加3行新的Pascal代码就可以了。注意一下对新的方法 `IsAddop` 的调用。因为对加减法运算符的检测出现过两次，所以我决定将它抽出来成为一个单独的函数。 `IsAddop` 方法的形式很明显来自于 `IsAlpha` 。下面是代码：
 
 [source,pascal]
 ----
-{--------------------------------------------------------------}
-{ Recognize an Addop }
+{ 识别加减法符号 }
 
 function IsAddop(c: char): boolean;
 begin
    IsAddop := c in ['+', '-'];
 end;
-{--------------------------------------------------------------}
 ----
 
 好的，把以上修改完成然后重新编译代码。你可以将 `IsAddop` 方法添加到你的摇篮代码的最底下。因为后面我们还会需要它。现在再尝试输入一下 `-1` ，可以工作了！当然代码的效率还是很差的，哈哈。我们用了6行代码才将一个常量加载成功。但最起码它是正确的。记住，我们并没有想要取代Turbo Pascal。
@@ -799,306 +624,6 @@ end;
 
 下一篇文章，我们将会处理变量这种 `factor` 以及函数调用。我也会向你展示处理多字符 `token` 和输入中的空格是多么的简单。
 
-=== C & X86 版本代码
-
-.cradle.h
-[source,c]
-----
-#ifndef _CRADLE_H
-#define _CRADLE_H
-#define UPCASE(C) ((1<<6)| (C))
-
-#define MAX_BUF 100
-char tmp[MAX_BUF];
-
-char Look;
-
-void GetChar();
-
-void Error(char *s);
-void Abort(char *s);
-void Expected(char *s);
-void Match(char x);
-
-int IsAlpha(char c);
-int IsDigit(char c);
-int IsAddop(char c);
-
-char GetName();
-char GetNum();
-
-void Emit(char *s);
-void EmitLn(char *s);
-
-void Init();
-
-#endif
-----
-
-.cradle.c
-[source,c]
-----
-#include "cradle.h"
-#include <stdio.h>
-#include <stdlib.h>
-
-
-void GetChar() 
-{
-    Look = getchar();
-}
-
-
-void Error(char *s)
-{
-    printf("\nError: %s.", s);
-}
-
-void Abort(char *s)
-{
-    Error(s);
-    exit(1);
-}
-
-
-void Expected(char *s)
-{
-    sprintf(tmp, "%s Expected", s);
-    Abort(tmp);
-}
-
-
-void Match(char x)
-{
-    if(Look == x) {
-        GetChar();
-    } else {
-        sprintf(tmp, "' %c ' ",  x);
-        Expected(tmp);
-    }
-}
-
-
-int IsAlpha(char c)
-{
-    return (UPCASE(c) >= 'A') && (UPCASE(c) <= 'Z');
-} 
-
-int IsDigit(char c)
-{
-    return (c >= '0') && (c <= '9');
-}
-
-int IsAddop(char c)
-{
-    return (c == '+') || (c == '-');
-}
-
-char GetName()
-{
-    char c = Look;
-
-    if( !IsAlpha(Look)) {
-        sprintf(tmp, "Name");
-        Expected(tmp);
-    }
-
-    GetChar();
-
-    return UPCASE(c);
-}
-
-
-char GetNum()
-{
-    char c = Look;
-
-    if( !IsDigit(Look)) {
-        sprintf(tmp, "Integer");
-        Expected(tmp);
-    }
-
-    GetChar();
-
-    return c;
-}
-
-void Emit(char *s)
-{
-    printf("\t%s", s);
-}
-
-void EmitLn(char *s)
-{
-    Emit(s);
-    printf("\n");
-}
-
-void Init()
-{
-    GetChar();
-}
-----
-
-.main.c
-[source,c]
-----
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "cradle.h"
-
-void Term();
-void Expression();
-void Add();
-void Substract();
-void Factor();
-
-void Multiply() {
-    Match('*');
-    Factor();
-    // 将栈顶元素和rax中的数相乘,然后结果存入rax中
-    EmitLn("imul (%rsp), %rax");
-    // 将栈顶元素弹出
-    EmitLn("add $8, %rsp");
-}
-
-void Divide() {
-    Match('/');
-    Factor();
-
-    // 此时栈顶元素是上面的Factor读取的数，将这个数存入rdx寄存器中
-    EmitLn("mov (%rsp), %rdx");
-    // 将栈顶元素弹出
-    EmitLn("add $8, %rsp");
-
-    // 将rax寄存器中的值压栈
-    EmitLn("push %rax");
-
-    EmitLn("mov %rdx, %rax");
-
-    EmitLn("sar $31, %rdx");
-    EmitLn("idivq (%rsp)");
-    EmitLn("add $8, %rsp");
-}
-
-void Factor() {
-    if (Look == '(') {
-        Match('(');
-        Expression();
-        Match(')');
-    } else if (IsAddop(Look)) {
-        Match('-');
-        sprintf(tmp, "mov $%c, %%rax", GetNum());
-        EmitLn(tmp);
-        EmitLn("neg %rax");
-    } else {
-        sprintf(tmp, "mov $%c, %%rax", GetNum());
-        EmitLn(tmp);
-    }
-}
-
-void Term() {
-    Factor();
-    while (strchr("*/", Look)) {
-        EmitLn("push %rax");
-
-        switch(Look) {
-            case '*':
-                Multiply();
-                break;
-            case '/':
-                Divide();
-                break;
-            default:
-                Expected("Mulop");
-        }
-    }
-}
-
-void Expression() {
-    if (IsAddop(Look))
-        // rax清零
-        EmitLn("xor %rax, %rax");
-    else
-        Term();
-
-    while (strchr("+-", Look)) {
-        EmitLn("push %rax");
-
-        switch(Look) {
-            case '+':
-                Add();
-                break;
-            case '-':
-                Substract();
-                break;
-            default:
-                Expected("Addop");
-        }
-    }
-}
-
-void Add() {
-    Match('+');
-    Term();
-    EmitLn("add (%rsp), %rax");
-    EmitLn("add $8, %rsp");
-}
-
-void Substract() {
-    Match('-');
-    Term();
-    EmitLn("sub (%rsp), %rax");
-    EmitLn("neg %rax");
-    EmitLn("add $8, %rsp");
-}
-
-int main() {
-    Init();
-    EmitLn(".globl main");
-    EmitLn("main:");
-    Expression();
-
-    // 将rax值返回
-    EmitLn("ret");
-    return 0;
-}
-----
-
-.Makefile
-[source,makefile]
-----
-IN=main.c cradle.c
-OUT=main
-FLAGS=-Wall -Werror
-
-all:
-	gcc -o $(OUT) $(IN) $(FLAGS)
-
-run:
-	./$(OUT)
-
-.PHONY: clean
-clean:
-	rm $(OUT)
-----
-
-运行
-
-[source,bash]
-----
-$ make
-$ ./main > tmp.s
-(1+3)/1
-$ gcc -o tmp tmp.s
-$ ./tmp
-$ echo $?
-----
-
-就可以看到输出结果了。
-
 == 更多表达式
 
 === 简介
@@ -1116,7 +641,7 @@ $ echo $?
 
 [source,text]
 ----
-               b * b + 4 * a * c
+b * b + 4 * a * c
 ----
 
 难以想像不能处理含有变量表达式的语法分析器会有多好。幸运地是，这很容易实现的。
@@ -1125,7 +650,7 @@ $ echo $?
 
 [source,text]
 ----
-     <factor> ::= <number> | (<expression>)
+<factor> ::= <number> | (<expression>)
 ----
 
 这里， `|` 代表 `or` (或)，意味着对于factor两种形式的任一种形式都是合法的。应该也记得，对于识别这两种不同形式我们并没有困难。向前看字符判断 `(` 为一种情形，而一个数字则属于另一种情形。
@@ -1134,7 +659,7 @@ $ echo $?
 
 [source,text]
 ----
-     <factor> ::= <number> | (<expression>) | <variable>
+<factor> ::= <number> | (<expression>) | <variable>
 ----
 
 同样，这样不会产生二义性：如果向前看字符是一个字母，我们就可知接下来的是一个变量；如果是一个数字，我们得到的是一个数字。当我们翻译一个数时，我们就生成一条加载这个数的代码，就如把一个立即数送入 `D0` 寄存器。现在我们也是一样，只是加载的是一个变量。
@@ -1145,7 +670,7 @@ $ echo $?
 
 [source,text]
 ----
-               MOVE X(PC),D0
+MOVE X(PC),D0
 ----
 
 这里 `X` 当然是一个变量名。为了增加语法分析器分析变量表达式的能力，让我们把当前版本的Factor函数改为：
@@ -1184,7 +709,7 @@ end;
 
 [source,text]
 ----
-                    x()  .
+x()
 ----
 
 因为我们不处理参数，所有什么也不用做，除了调用函数，我们所要做的是用一个BSR(子程序调用)命令来取代一个MOVE。
@@ -1249,21 +774,21 @@ end;
 
 [source,text]
 ----
-               1+2 <space> 3+4
+1+2 <space> 3+4
 ----
 
 看一下语法分析器是如何把空格看成一个终结符的？现在，为了让编译器可以适当地标记，在主函数Main中，仅在Expression调用后加入一行：
 
 [source,pascal]
 ----
-               if Look <> CR then Expected('Newline');
+if Look <> CR then Expected('Newline');
 ----
 
 它可以捕捉留在输入流中的一切。不要忘记增加一个常数语句定义CR：
 
 [source,pascal]
 ----
-               CR = ^M;
+CR = ^M;
 ----
 
 和以住一样，重编译程序并验证它可以做它所能支持的。
@@ -1276,7 +801,7 @@ end;
 
 [source,text]
 ----
-          <Ident> = <Expression>
+<Ident> = <Expression>
 ----
 
 其实，我们离可以有能力分析一个赋值语句只有一瞬之差，所以让我们把这最后一步完成。仅仅在过程Expression之后加入如下新的过程：
@@ -1739,321 +1264,6 @@ end.
 
 现在语法分析程序已经完成。它已具有我们可以放入一个直线型“编译器”的所有特征。把它收藏在一个安全的地方。下一次，我们将开始一个新的主题，但一会儿我们也仍将讨论表达式。下一部分，我打算讲述与编译器不同的解释器，并向你展示当我们改动行为的种类时语法分析器的结构变动。即使你对解释器不感兴趣，但获取这些信息为我们以后服务是很有好处的。下次再见。
 
-=== C & X86 版本代码
-
-.cradle.h
-[source,c]
-----
-#ifndef _CRADLE_H
-#define _CRADLE_H
-
-#define MAX_BUF 100
-char tmp[MAX_BUF];
-
-char Look;
-
-void GetChar();
-
-void Error(char *s);
-void Abort(char *s);
-void Expected(char *s);
-void Match(char x);
-
-int IsAlpha(char c);
-int IsDigit(char c);
-int IsAddop(char c);
-int IsAlNum(char c);
-int IsWhite(char c);
-
-char *GetName();
-char *GetNum();
-
-void SkipWhite();
-
-void Emit(char *s);
-void EmitLn(char *s);
-
-void Init();
-
-#endif
-----
-
-.cradle.c
-[source,c]
-----
-#include "stdio.h"
-#include "stdlib.h"
-#include "cradle.h"
-
-#define UPCASE(c) (~(1<<5) & (c))
-
-void GetChar() {
-  Look = getchar();
-}
-
-void Error(char* s) {
-  printf("\n");
-  printf("Error: %s\n", s);
-}
-
-void Abort(char* s) {
-  Error(s);
-  exit(1);
-}
-
-void Expected(char* s) {
-  sprintf(tmp, "%s Expected", s);
-  Abort(tmp);
-}
-
-void Match(char x) {
-  if(Look != x) {
-    sprintf(tmp, "' %c '", x);
-    Expected(tmp);
-  }
-  else {
-    GetChar();
-    SkipWhite();
-  }
-}
-
-int IsAlpha(char x) {
-  return (UPCASE(x) >= 'A' && UPCASE(x) <= 'Z');
-}
-
-int IsDigit(char x) {
-  return x >= '0' && x <= '9';
-}
-
-char* GetName() {
-  if(!IsAlpha(Look)) {
-      Expected("Name");
-  }
-  char* Token = malloc(100 * sizeof *Token);
-  Token[0] = '\0';
-  int i = 0;
-  while(IsAlNum(Look)) {
-    Token[i] = UPCASE(Look);
-    GetChar();
-    i++;
-  }
-  Token[i] = '\0';
-  SkipWhite();
-  return Token;
-}
-
-char* GetNum() {
-  if(!IsDigit(Look)) {
-    Expected("Integer");
-  }
-  char* Value = malloc(100 * sizeof *Value);
-  int i = 0;
-  while(IsDigit(Look)) {
-    Value[i] = Look;
-    GetChar();
-    i++;
-  }
-  Value[i] = '\0';
-  SkipWhite();
-  return Value;
-}
-
-void Emit(char* s) {
-  printf("\t%s", s);
-}
-
-void EmitLn(char* s) {
-  Emit(s);
-  printf("\n");
-}
-
-void Init() {
-  GetChar();
-  SkipWhite();
-}
-
-int IsAddop(char c) {
-  return c == '+' || c == '-';
-}
-
-int IsAlNum(char c) {
-  return IsAlpha(c) || IsDigit(c);
-}
-
-int IsWhite(char c) {
-  return c == ' ' || c == '\t';
-}
-
-void SkipWhite() {
-  while(IsWhite(Look)) {
-    GetChar();
-  }
-}
-----
-
-.main.c
-[source,c]
-----
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "cradle.h"
-
-void Term();
-void Expression();
-void Add();
-void Substract();
-void Factor();
-void Ident();
-void Assignment();
-
-void Multiply() {
-    Match('*');
-    Factor();
-    EmitLn("imul (%rsp), %rax");
-    /* push of the stack */
-    EmitLn("add $8, %rsp");
-} 
-
-void Divide() {
-    Match('/');
-    Factor();
-
-    /* for a expersion like a/b we have rax=b and %(rsp)=a
-     * but we need rax=a, and b on the stack 
-     */
-    EmitLn("mov (%rsp), %rdx");
-    EmitLn("add $8, %rsp");
-
-    EmitLn("push %rax");
-
-    EmitLn("mov %rdx, %rax");
-
-    /* sign extesnion */
-    EmitLn("sar $31, %rdx");
-    EmitLn("idivq (%rsp)");
-    EmitLn("add $8, %rsp");
-
-}
-
-void Ident() {
-    char *name = GetName();
-    if (Look == '(') {
-        Match('(');
-        Match(')');
-        sprintf(tmp, "call %s", name);
-        EmitLn(tmp);
-    } else {
-        sprintf(tmp, "mov %s, %%rax", name);
-        EmitLn(tmp);
-    }
-}
-
-void Factor() {
-    if(Look == '(') {
-        Match('(');
-        Expression();
-        Match(')');
-     } else if(IsAddop(Look)) {
-        Match('-');
-        sprintf(tmp,"mov $%s, %%rax", GetNum());
-        EmitLn(tmp);
-        EmitLn("neg %rax");
-    } else if (IsAlpha(Look)) {
-        Ident();
-    } else {
-        sprintf(tmp,"mov $%s, %%rax", GetNum());
-        EmitLn(tmp);
-    }
-}
-
-void Term() {
-    Factor();
-    while (strchr("*/", Look)) {
-
-        EmitLn("push %rax");
-
-        switch(Look)
-        {
-            case '*':
-                Multiply();
-                break;
-            case '/':
-                Divide();
-                break;
-            default:
-                Expected("Mulop");
-        }
-    }
-}
-
-void Expression() {
-    if(IsAddop(Look))
-        EmitLn("xor %rax, %rax");
-    else
-        Term();
-
-    while (strchr("+-", Look)) {
-
-        EmitLn("push %rax");
-
-        switch(Look)
-        {
-            case '+':
-                Add();
-                break;
-            case '-':
-                Substract();
-                break;
-            default:
-                Expected("Addop");
-        }
-    }
-}
-
-
-void Add() {
-    Match('+');
-    Term();
-    EmitLn("add (%rsp), %rax");
-    EmitLn("add $8, %rsp");
-    
-}
-
-
-void Substract() {
-    Match('-');
-    Term();
-    EmitLn("sub (%rsp), %rax");
-    EmitLn("neg %rax");
-    EmitLn("add $8, %rsp");
-}
-
-void Assignment() {
-    char *name = GetName();
-    Match('=');
-    Expression();
-    sprintf(tmp, "leaq %s, %%rbx", name);
-    EmitLn(tmp);
-    EmitLn("mov %rax, (%rbx)");
-}
-
-int main() {
-    Init();
-    EmitLn(".global main");
-    EmitLn("main:");
-    Expression();
-    // Assignment();
-    if (Look != '\n') {
-        Expected("NewLine");
-    }
-
-    EmitLn("ret");
-    return 0;
-}
-----
-
 == 解释器
 
 === 简介
@@ -2091,21 +1301,21 @@ x = 2 * y + 3
 
 [source,text]
 ----
-x = x + 3 - 2 - (5 - 4)  ,
+x = x + 3 - 2 - (5 - 4)
 ----
 
 我们之前写的编译器将会为这个语句生成18条汇编语句：将每一个参数加载到寄存器中，执行算术运算，以及保存计算结果。而一个惰性求值将会识别出算术运算中包含的常量的计算可以在编译期完成求值。然后将表达式归约为以下形式：
 
 [source,text]
 ----
-x = x + 0  .
+x = x + 0
 ----
 
 一个更加惰性的求值将会更加聪明，会识别出上面的语句等价于以下语句：
 
 [source,text]
 ----
-x = x  ,
+x = x
 ----
 
 而上面的这条语句什么也没有做。所以我们可以将18条汇编语句化简为0条汇编语句！
@@ -2146,7 +1356,7 @@ end;
 
 [source,pascal]
 ----
-    WriteLn(Expression);
+WriteLn(Expression);
 ----
 
 现在语法分析器程序可以将一个单字符的整数进行语法分析然后翻译一个整数表达式了。当然，你需要保证程序能够对数字 `0..9` 都运行正确。然后输入其他字符，可以报错。不需要你再做任何其他事情了。
@@ -2209,7 +1419,7 @@ end;
 
 [source,pascal]
 ----
-{ Get a Number }
+{ 获取数值 }
 
 function GetNum: integer;
 var Value: integer;
@@ -2228,7 +1438,7 @@ end;
 
 [source,pascal]
 ----
-{ Parse and Translate a Math Factor }
+{ 对数学因子（Factor）进行语法分析和翻译 }
 
 function Expression: integer; Forward;
 
@@ -2270,14 +1480,14 @@ end;
 
 [source,pascal]
 ----
-               Table: Array['A'..'Z'] of integer;
+Table: Array['A'..'Z'] of integer;
 ----
 
 我们需要初始化这个数组，所以添加下面的函数：
 
 [source,pascal]
 ----
-{ Initialize the Variable Area }
+{ 初始化变量 }
 
 procedure InitTable;
 var i: char;
@@ -2293,7 +1503,7 @@ end;
 
 [source,pascal]
 ----
-{ Parse and Translate a Math Factor }
+{ 对数学因子（Factor）进行语法分析和翻译 }
 
 function Expression: integer; Forward;
 
@@ -2319,7 +1529,7 @@ end;
 
 [source,pascal]
 ----
-{ Parse and Translate an Assignment Statement }
+{ 对赋值语句进行语法分析和翻译 }
 
 procedure Assignment;
 var Name: char;
@@ -2340,7 +1550,7 @@ end;
 
 [source,pascal]
 ----
-{ Recognize and Skip Over a Newline }
+{ 识别然后跳过CRLF字符 }
 
 procedure NewLine;
 begin
@@ -2356,7 +1566,7 @@ end;
 
 [source,pascal]
 ----
-{ Main Program }
+{ 主程序 }
 
 begin
    Init;
@@ -2375,7 +1585,7 @@ end.
 
 [source,pascal]
 ----
-{ Input Routine }
+{ 输入程序 }
 
 procedure Input;
 begin
@@ -2383,7 +1593,7 @@ begin
    Read(Table[GetName]);
 end;
 
-{ Output Routine }
+{ 输出程序 }
 
 procedure Output;
 begin
@@ -2398,7 +1608,7 @@ main函数中对应的改变在下面的代码中。可以看到我们使用了�
 
 [source,pascal]
 ----
-{ Main Program }
+{ 主程序 }
 
 begin
    Init;
