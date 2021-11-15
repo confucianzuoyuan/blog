@@ -1,4 +1,6 @@
 = 构建一个编译器
+Jack Crenshaw; 左元
+:scripts: cjk
 :icons: font
 :source-highlighter: pygments
 :toc: left
